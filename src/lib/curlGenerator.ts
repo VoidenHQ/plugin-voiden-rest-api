@@ -13,6 +13,8 @@ interface RequestData {
     body?: string;
     bodyType?: 'json' | 'xml' | 'yaml' | 'form' | 'multipart' | 'text';
     multipartData?: Array<{key: string, value: string, type?: string}>;
+    /** Raw cURL flags appended verbatim at the end (e.g. ['--digest', '-u "user:pass"']). */
+    flags?: string[];
 }
 
 /**
@@ -126,6 +128,13 @@ export const generateCurlCommand = (data: RequestData): string => {
                 }
             }
         }
+    }
+
+    // Append raw auth flags (e.g. --digest, --ntlm, --aws-sigv4)
+    if (data.flags && data.flags.length > 0) {
+        data.flags.forEach(flag => {
+            if (flag.trim()) parts.push(flag.trim());
+        });
     }
 
     return parts.join(' \\\n  ');
@@ -268,6 +277,11 @@ export const generateCurlFromRequestObject = (req: any): string => {
         }
     }
 
+    // Raw cURL flags injected by extenders (e.g. --digest, --ntlm, --aws-sigv4)
+    if (req.extraFlags && Array.isArray(req.extraFlags) && req.extraFlags.length > 0) {
+        data.flags = req.extraFlags;
+    }
+
     // For multipart, DO NOT add Content-Type header manually
     // curl -F automatically sets it with the boundary
     const hasContentType = (data.headers || []).some(h => h.key && h.key.toLowerCase() === 'content-type');
@@ -315,6 +329,17 @@ const resolveAbsoluteFilePath = (filePath: string, activeProject?: string): stri
 export const generateCurlFromJson = async (
     doc: any
 ): Promise<string> => {
+    // Expand linked blocks (imports from other .void files) so that inherited
+    // headers, auth nodes, and other blocks are visible to the cURL generator.
+    let expandedDoc = doc;
+    try {
+        // @ts-ignore
+        const { expandLinkedBlocksInDoc } = await import(/* @vite-ignore */ '@/core/editors/voiden/utils/expandLinkedBlocks');
+        expandedDoc = await expandLinkedBlocksInDoc(doc, { forceRefresh: false });
+    } catch {
+        // Not in app context (e.g. tests) — use raw doc as-is.
+    }
+
     // Dynamic import of core request-building helpers (path resolved at runtime in app context)
     // @ts-ignore
     const { getTable, parseAuthNode, buildHeadersWithCookies, findNode, createNewRequestObject } =
@@ -322,24 +347,73 @@ export const generateCurlFromJson = async (
 
     const { buildContentType, buildBodyParams, buildRequestBody, extractBinary } = await import('./requestBuilder');
 
-    const endpointNode = findNode(doc, "api") || findNode(doc, "request");
+    const endpointNode = findNode(expandedDoc, "api") || findNode(expandedDoc, "request");
     const method = endpointNode?.content?.find((n: any) => n.type === "method")?.content?.[0]?.text || "GET";
     const url = endpointNode?.content?.find((n: any) => n.type === "url")?.content?.[0]?.text || "";
 
-    const auth = parseAuthNode(doc);
-    const contentType = buildContentType(doc, getTable, undefined);
+    const auth = parseAuthNode(expandedDoc);
+    const contentType = buildContentType(expandedDoc, getTable, undefined);
 
-    const requestData = {
+    const requestData: any = {
         ...createNewRequestObject({ method, url }),
-        headers: buildHeadersWithCookies(doc, undefined),
-        params: getTable("query-table", doc, undefined),
-        path_params: getTable("path-table", doc, undefined),
+        headers: buildHeadersWithCookies(expandedDoc, undefined),
+        params: getTable("query-table", expandedDoc, undefined),
+        path_params: getTable("path-table", expandedDoc, undefined),
         content_type: contentType,
-        body_params: await buildBodyParams(doc, contentType),
-        binary: extractBinary(doc),
-        body: buildRequestBody(doc, getTable, undefined),
+        body_params: await buildBodyParams(expandedDoc, contentType),
+        binary: extractBinary(expandedDoc),
+        body: buildRequestBody(expandedDoc, getTable, undefined),
         auth,
     };
+
+    // Call registered cURL extenders (e.g. from the auth plugin) to inject
+    // headers, query params, and raw flags for auth types the base generator
+    // doesn't handle (OAuth2, Digest, NTLM, AWS, etc.). Existing explicit
+    // headers and params take precedence — extenders cannot overwrite them.
+    try {
+        // @ts-ignore
+        const { getCurlHeaderExtenders } = await import(/* @vite-ignore */ '@/plugins');
+        const extenders: readonly any[] = getCurlHeaderExtenders();
+        if (extenders.length > 0) {
+            const existingHeaderKeys = new Set<string>(
+                (requestData.headers ?? []).map((h: any) => h.key?.toLowerCase())
+            );
+            const existingParamKeys = new Set<string>(
+                (requestData.params ?? []).map((p: any) => p.key?.toLowerCase())
+            );
+            const extraFlags: string[] = [];
+
+            for (const extender of extenders) {
+                const result: any = await extender(expandedDoc);
+                // Extenders return { headers?, queryParams?, flags? }
+                const headers: Array<{key: string; value: string}> = result?.headers ?? [];
+                const queryParams: Array<{key: string; value: string}> = result?.queryParams ?? [];
+                const flags: string[] = result?.flags ?? [];
+
+                for (const h of headers) {
+                    if (h.key && !existingHeaderKeys.has(h.key.toLowerCase())) {
+                        requestData.headers = [...(requestData.headers ?? []), h];
+                        existingHeaderKeys.add(h.key.toLowerCase());
+                    }
+                }
+                for (const p of queryParams) {
+                    if (p.key && !existingParamKeys.has(p.key.toLowerCase())) {
+                        requestData.params = [...(requestData.params ?? []), p];
+                        existingParamKeys.add(p.key.toLowerCase());
+                    }
+                }
+                for (const flag of flags) {
+                    if (flag) extraFlags.push(flag);
+                }
+            }
+
+            if (extraFlags.length > 0) {
+                requestData.extraFlags = extraFlags;
+            }
+        }
+    } catch {
+        // Not in app context or no extenders registered.
+    }
 
     // File-link attrs store project-relative paths. Resolve them to absolute
     // paths so the copied cURL command works outside the project's directory.

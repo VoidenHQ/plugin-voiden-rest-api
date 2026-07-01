@@ -38,6 +38,17 @@ export const getNodeType = (editor: Editor) => {
   return "general";
 };
 
+// Tables that get a Description column by default (issue #261). cookies-table
+// is intentionally excluded — not part of the requested scope.
+const TABLES_WITH_DESCRIPTION = new Set([
+  "headers-table",
+  "query-table",
+  "path-table",
+  "multipart-table",
+  "url-table",
+  "options-table",
+]);
+
 export const insertRequestTableNode = (editor: Editor, sourceRange: Range, tableType: string) => {
   // Find section boundaries around the cursor (between request-separator nodes)
   const cursorPos = sourceRange.from;
@@ -71,7 +82,11 @@ export const insertRequestTableNode = (editor: Editor, sourceRange: Range, table
       .insertTable({
         type: tableType,
         rows: 1,
-        cols: 2,
+        // Key, Value, Description for in-scope table types (issue #261). Older
+        // saved files keep their original 2-column rows — the request engine
+        // and serializer already only read/round-trip whatever cells exist
+        // per row, so this doesn't require any migration.
+        cols: TABLES_WITH_DESCRIPTION.has(tableType) ? 3 : 2,
         withHeaderRow: false,
       })
       .focus(editor.state.doc.resolve(sourceRange.from + 1).pos)

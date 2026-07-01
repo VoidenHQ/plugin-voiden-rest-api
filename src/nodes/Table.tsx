@@ -37,10 +37,46 @@ const TableWrapperNode = Node.create({
     return ReactNodeViewRenderer(TableNodeView);
   },
 });
+// Adds a Description column (issue #261) to a table created before this feature
+// shipped. Positions the selection in the last cell of the first row and runs
+// the standard addColumnAfter table command, which pads every row uniformly.
+const addDescriptionColumn = (editor: Editor, getPos: () => number, wrapperNode: NodeViewProps["node"]) => {
+  const tableNode = wrapperNode.firstChild;
+  const firstRow = tableNode?.firstChild;
+  if (!tableNode || !firstRow || firstRow.childCount === 0) return;
+
+  let pos = getPos() + 3; // doc position of the first row's first cell
+  for (let i = 0; i < firstRow.childCount - 1; i++) {
+    pos += firstRow.child(i).nodeSize;
+  }
+  editor.chain().focus(pos + 1).addColumnAfter().run();
+};
+
+// Static, non-editable column labels rendered above the actual ProseMirror table.
+// A plain <table> with the same column count and table-fixed/w-full sizing as the
+// real data table below it, so column widths line up exactly.
+const ColumnLabels = ({ hasDescription }: { hasDescription: boolean }) => {
+  const thClass = "text-left text-[10px] uppercase tracking-wide font-medium py-1.5 px-3";
+  const thStyle = { color: 'var(--fg-secondary, var(--editor-fg))', borderBottom: '1px solid color-mix(in srgb, var(--ui-line) 40%, transparent)' };
+  return (
+    <table className="w-full table-fixed border-collapse" contentEditable={false}>
+      <tbody>
+        <tr>
+          <th className={thClass} style={thStyle}>Key</th>
+          <th className={thClass} style={thStyle}>Value</th>
+          {hasDescription && <th className={thClass} style={thStyle}>Description</th>}
+        </tr>
+      </tbody>
+    </table>
+  );
+};
+
 const createNodeView =
-  (title: string, RequestBlockHeader: any, openFile?: (relativePath: string) => Promise<void>, helpContent?: React.ReactNode) =>
-  ({ editor, node }: NodeViewProps) => {
+  (title: string, RequestBlockHeader: any, openFile?: (relativePath: string) => Promise<void>, helpContent?: React.ReactNode, supportsDescriptionColumn?: boolean) =>
+  ({ editor, node, getPos }: NodeViewProps) => {
     const isEditable = !node?.attrs?.importedFrom || title === "Multipart Form";
+    const columnCount = node.firstChild?.firstChild?.childCount ?? 0;
+    const showAddDescription = supportsDescriptionColumn && isEditable && columnCount > 0 && columnCount < 3;
 
     return (
       <NodeViewWrapper
@@ -54,7 +90,20 @@ const createNodeView =
             importedDocumentId={node.attrs.importedFrom}
             openFile={openFile}
             helpContent={helpContent}
+            actions={
+              showAddDescription ? (
+                <button
+                  type="button"
+                  onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
+                  onClick={() => addDescriptionColumn(editor, getPos, node)}
+                  className="text-[10px] text-comment hover:text-text transition-colors px-1.5 py-0.5 rounded hover:bg-active/50"
+                >
+                  + Description
+                </button>
+              ) : undefined
+            }
           />
+          {supportsDescriptionColumn && columnCount > 0 && <ColumnLabels hasDescription={columnCount >= 3} />}
           <div
             className="w-full max-w-full"
             contentEditable={editor.isEditable && isEditable}
@@ -101,7 +150,7 @@ export const createHeadersTableNodeView = (RequestBlockHeader: any, openFile?: (
       return ["headers-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-HEADERS", RequestBlockHeader, openFile, <HttpHeadersHelp />));
+      return ReactNodeViewRenderer(createNodeView("HTTP-HEADERS", RequestBlockHeader, openFile, <HttpHeadersHelp />, true));
     },
   });
 
@@ -122,7 +171,7 @@ export const createQueryTableNodeView = (RequestBlockHeader: any, openFile?: (re
       return ["query-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-QUERY-PARAMS", RequestBlockHeader, openFile, <HttpQueryParamsHelp />));
+      return ReactNodeViewRenderer(createNodeView("HTTP-QUERY-PARAMS", RequestBlockHeader, openFile, <HttpQueryParamsHelp />, true));
     },
   });
 
@@ -143,7 +192,7 @@ export const createURLTableNodeView = (RequestBlockHeader: any, openFile?: (rela
       return ["url-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-URL-FORM", RequestBlockHeader, openFile, <HttpUrlFormHelp />));
+      return ReactNodeViewRenderer(createNodeView("HTTP-URL-FORM", RequestBlockHeader, openFile, <HttpUrlFormHelp />, true));
     },
   });
 
@@ -164,7 +213,7 @@ export const createMultipartTableNodeView = (RequestBlockHeader: any, openFile?:
       return ["multipart-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-MULTIPART-FORM-DATA", RequestBlockHeader, openFile, <HttpMultipartFormHelp />));
+      return ReactNodeViewRenderer(createNodeView("HTTP-MULTIPART-FORM-DATA", RequestBlockHeader, openFile, <HttpMultipartFormHelp />, true));
     },
   });
 
@@ -185,7 +234,7 @@ export const createPathParamsTableNodeView = (RequestBlockHeader: any, openFile?
       return ["path-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-PATH-PARAMS", RequestBlockHeader, openFile, <HttpPathParamsHelp />));
+      return ReactNodeViewRenderer(createNodeView("HTTP-PATH-PARAMS", RequestBlockHeader, openFile, <HttpPathParamsHelp />, true));
     },
   });
 
@@ -227,7 +276,7 @@ export const createOptionsTableNodeView = (RequestBlockHeader: any, openFile?: (
       return ["options-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("REQUEST-OPTIONS", RequestBlockHeader, openFile, <RequestOptionsHelp />));
+      return ReactNodeViewRenderer(createNodeView("REQUEST-OPTIONS", RequestBlockHeader, openFile, <RequestOptionsHelp />, true));
     },
   });
 

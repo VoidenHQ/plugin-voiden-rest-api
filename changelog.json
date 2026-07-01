@@ -34,10 +34,14 @@
   },
   {
     "version": "v1.4.4",
-    "date": "29/05/2026",
-    "title": "Help Commands",
+    "date": "01/07/2026",
+    "title": "Description Column, cURL Extenders & Help Commands",
     "changes": {
       "Added": [
+        "Description column support for headers, query params, URL form, multipart, path params, and options tables — a '+ Description' button appears when the table has only Key/Value columns; clicking it adds the column uniformly across all rows",
+        "Static Key / Value / Description column labels rendered above each table so column roles are always visible",
+        "cURL copy now calls registered cURL extender plugins before generating the command, so auth plugins (OAuth 2, Digest, NTLM, AWS) can inject extra headers, query params, and raw flags (e.g. --digest, --aws-sigv4) into the copied output",
+        "cURL copy now expands linked/imported blocks before building the command, so inherited auth nodes and headers from parent .void files are included",
         "Register help entries in the command palette for HTTP headers, body types, query params, path params, cookies, and request options"
       ]
     }
