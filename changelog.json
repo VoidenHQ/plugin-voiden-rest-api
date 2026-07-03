@@ -1,5 +1,18 @@
 [
   {
+    "version": "v1.4.5",
+    "date": "03/07/2026",
+    "title": "Column Labels Fix & Skill Documentation",
+    "changes": {
+      "Fixed": [
+        "Description column header row in Key/Value tables now includes a leading separator cell matching the checkbox column width, so Key/Value/Description labels align correctly with their data columns"
+      ],
+      "Improved": [
+        "AI skill documentation updated with cookies-table, options-table, and other previously missing table node types and their correct attr schemas"
+      ]
+    }
+  },
+  {
     "version": "v1.4.3",
     "date": "24/06/2026",
     "title": "Path Params Helper",
