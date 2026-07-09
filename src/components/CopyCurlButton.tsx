@@ -46,12 +46,25 @@ export const CopyCurlButton: React.FC<CopyCurlButtonProps> = ({ tab, context }) 
                 return;
             }
 
+            // Fetch cURL header extenders via context — a real function reference
+            // handed to this plugin at load time, not a dynamic import of another
+            // plugin's app-internal module path (which has no guaranteed runtime
+            // resolution and was silently dropping Digest/NTLM/AWS/OAuth2 auth
+            // from generated commands).
+            const extenders = (context.paste as any)?.getCurlHeaderExtenders?.() ?? [];
+
             // Generate cURL command
-            const rawCurlCommand = await generateCurlFromJson(jsonContent);
+            const { command: rawCurlCommand, warnings } = await generateCurlFromJson(jsonContent, extenders);
 
             if (!rawCurlCommand) {
                 console.warn('Failed to generate cURL command');
                 return;
+            }
+
+            // Surface auth types with no static cURL representation (e.g. Hawk,
+            // Atlassian ASAP) instead of silently omitting them.
+            for (const warning of warnings) {
+                (context.ui as any)?.showToast?.(warning, 'warning');
             }
 
             // Resolve {{VAR}} and {{process.xxx}} placeholders

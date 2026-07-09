@@ -27,7 +27,7 @@ const preventEnter = (editor: Editor) => {
 };
 
 // Factory function to create MethodNode with context hooks
-export const createMethodNode = (useSendRestRequest: any) => {
+export const createMethodNode = (useSendRestRequest: any, context?: any) => {
   const MethodNodeView = (props: NodeViewProps) => {
     const { node, editor, getPos } = props;
     const { refetchFromElement } = useSendRestRequest(editor);
@@ -53,7 +53,14 @@ export const createMethodNode = (useSendRestRequest: any) => {
         // Get the scoped doc for this section
         const fullJson = editor.getJSON();
         const scopedDoc = extractSectionDocByIndex(fullJson, sectionIndex);
-        const curlCommand = await generateCurlFromJson(scopedDoc);
+        const extenders = context?.paste?.getCurlHeaderExtenders?.() ?? [];
+        const { command: curlCommand, warnings } = await generateCurlFromJson(scopedDoc, extenders);
+
+        // Surface auth types with no static cURL representation (e.g. Hawk,
+        // Atlassian ASAP) instead of silently omitting them.
+        for (const warning of warnings) {
+          context?.ui?.showToast?.(warning, 'warning');
+        }
 
         if (curlCommand) {
           const resolved = await (window as any).electron?.env?.replaceVariables(curlCommand) ?? curlCommand;

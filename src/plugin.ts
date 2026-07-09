@@ -153,7 +153,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
       const JsonNode = createJsonNode(NodeViewWrapper, CodeEditor, RequestBlockHeader, context.project.openFile);
       const XMLNode = createXMLNode(NodeViewWrapper, CodeEditor, RequestBlockHeader, context.project.openFile);
       const YmlNode = createYmlNode(NodeViewWrapper, CodeEditor, RequestBlockHeader, context.project.openFile);
-      const MethodNode = createMethodNode(useSendRestRequest);
+      const MethodNode = createMethodNode(useSendRestRequest, context);
       const RestFile = createRestFileNode(NodeViewWrapper, RequestBlockHeader, context.project.openFile);
 
       // Create table nodes with RequestBlockHeader and openFile callback

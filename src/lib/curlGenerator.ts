@@ -325,10 +325,17 @@ const resolveAbsoluteFilePath = (filePath: string, activeProject?: string): stri
  * construction here so cURL output matches what actually gets sent.
  *
  * @param doc - Section-scoped editor JSON (e.g. via extractSectionDocByIndex)
+ * @param extenders - cURL header extenders (e.g. from context.paste.getCurlHeaderExtenders()).
+ *   Pass these in explicitly when possible — see the comment at the call site below
+ *   for why a dynamic import fallback isn't reliable for reaching this list.
+ * @returns the generated command, plus any warnings from extenders about auth
+ *   types with no static cURL representation (e.g. Hawk, Atlassian ASAP) that
+ *   the caller should surface to the user instead of silently omitting.
  */
 export const generateCurlFromJson = async (
-    doc: any
-): Promise<string> => {
+    doc: any,
+    extenders?: readonly any[]
+): Promise<{ command: string; warnings: string[] }> => {
     // Expand linked blocks (imports from other .void files) so that inherited
     // headers, auth nodes, and other blocks are visible to the cURL generator.
     let expandedDoc = doc;
@@ -370,11 +377,24 @@ export const generateCurlFromJson = async (
     // headers, query params, and raw flags for auth types the base generator
     // doesn't handle (OAuth2, Digest, NTLM, AWS, etc.). Existing explicit
     // headers and params take precedence — extenders cannot overwrite them.
+    //
+    // Prefer the extenders list passed in by the caller (CopyCurlButton reads
+    // it via context.paste.getCurlHeaderExtenders(), a real function reference
+    // handed to this plugin at load time). Fall back to a dynamic import only
+    // when no list was passed — a plugin bundle dynamically importing another
+    // app-internal module by path at runtime has no guaranteed resolution and
+    // can silently fail, which is exactly how this went unnoticed: every
+    // extended auth type (Digest, NTLM, AWS, OAuth2) was silently dropped
+    // from generated cURL commands with no error surfaced anywhere.
+    const warnings: string[] = [];
     try {
-        // @ts-ignore
-        const { getCurlHeaderExtenders } = await import(/* @vite-ignore */ '@/plugins');
-        const extenders: readonly any[] = getCurlHeaderExtenders();
-        if (extenders.length > 0) {
+        let resolvedExtenders: readonly any[] = extenders ?? [];
+        if (!extenders) {
+            // @ts-ignore
+            const { getCurlHeaderExtenders } = await import(/* @vite-ignore */ '@/plugins');
+            resolvedExtenders = getCurlHeaderExtenders();
+        }
+        if (resolvedExtenders.length > 0) {
             const existingHeaderKeys = new Set<string>(
                 (requestData.headers ?? []).map((h: any) => h.key?.toLowerCase())
             );
@@ -383,12 +403,13 @@ export const generateCurlFromJson = async (
             );
             const extraFlags: string[] = [];
 
-            for (const extender of extenders) {
+            for (const extender of resolvedExtenders) {
                 const result: any = await extender(expandedDoc);
-                // Extenders return { headers?, queryParams?, flags? }
+                // Extenders return { headers?, queryParams?, flags?, warning? }
                 const headers: Array<{key: string; value: string}> = result?.headers ?? [];
                 const queryParams: Array<{key: string; value: string}> = result?.queryParams ?? [];
                 const flags: string[] = result?.flags ?? [];
+                if (result?.warning) warnings.push(result.warning);
 
                 for (const h of headers) {
                     if (h.key && !existingHeaderKeys.has(h.key.toLowerCase())) {
@@ -411,8 +432,11 @@ export const generateCurlFromJson = async (
                 requestData.extraFlags = extraFlags;
             }
         }
-    } catch {
-        // Not in app context or no extenders registered.
+    } catch (err) {
+        // Legitimately expected outside the app shell (e.g. tests) when no
+        // extenders param was passed — but log it so a real runtime failure
+        // (e.g. the dynamic import fallback above) isn't silently invisible.
+        console.warn('[curlGenerator] cURL header extenders unavailable:', err);
     }
 
     // File-link attrs store project-relative paths. Resolve them to absolute
@@ -444,5 +468,5 @@ export const generateCurlFromJson = async (
         }
     }
 
-    return generateCurlFromRequestObject(requestData);
+    return { command: generateCurlFromRequestObject(requestData), warnings };
 };

@@ -2,10 +2,12 @@
   {
     "version": "v1.4.6",
     "date": "09/07/2026",
-    "title": "Multipart Content-Type Header Fix",
+    "title": "Multipart Content-Type Header Fix & Copy as cURL Auth Reliability",
     "changes": {
       "Fixed": [
-        "The check that strips a user-set Content-Type header for multipart/form-data requests (so the real auto-generated boundary is used instead) only matched the exact literal string \"multipart/form-data\" — no trimming, no case-insensitivity, no tolerance for a stray/stale boundary param. Any deviation (e.g. a leading space from curl-style header parsing, different casing, or a leftover boundary copied from elsewhere) left the wrong header in place alongside the real multipart body, causing a boundary mismatch that breaks server-side parsing of the request"
+        "The check that strips a user-set Content-Type header for multipart/form-data requests (so the real auto-generated boundary is used instead) only matched the exact literal string \"multipart/form-data\" — no trimming, no case-insensitivity, no tolerance for a stray/stale boundary param. Any deviation (e.g. a leading space from curl-style header parsing, different casing, or a leftover boundary copied from elsewhere) left the wrong header in place alongside the real multipart body, causing a boundary mismatch that breaks server-side parsing of the request",
+        "Copy as cURL now reads registered auth cURL header extenders (Digest, NTLM, AWS Signature, OAuth2, etc. from voiden-advanced-auth) via a direct context reference instead of a dynamic import of another plugin's app-internal module path, which had no guaranteed runtime resolution and was silently dropping those auth types from generated commands with no error surfaced anywhere",
+        "Copy as cURL now surfaces a warning toast for auth types with no static cURL representation (e.g. Hawk, Atlassian ASAP) instead of silently omitting them from the generated command"
       ]
     }
   },
