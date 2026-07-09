@@ -160,8 +160,11 @@ export async function buildAuthHeaders(
   return headers
     .filter((h) => h.enabled)
     .reduce((acc: Record<string, string>, h) => {
-      // Strip bare multipart/form-data — boundary must come from the native FormData
-      if (h.key.toLowerCase() === "content-type" && h.value === "multipart/form-data") return acc;
+      // Strip any user-set multipart/form-data content-type (regardless of
+      // casing, whitespace, or a stray/stale boundary param) — the boundary
+      // must come from the native FormData we build, or the server can't
+      // find the real part delimiter and multipart parsing breaks.
+      if (h.key.trim().toLowerCase() === "content-type" && h.value.trim().toLowerCase().startsWith("multipart/form-data")) return acc;
       if (h.key && h.value) acc[h.key] = h.value;
       return acc;
     }, authHeaders);
