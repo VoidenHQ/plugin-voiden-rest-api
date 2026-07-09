@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.4.6",
+    "date": "09/07/2026",
+    "title": "Multipart Content-Type Header Fix",
+    "changes": {
+      "Fixed": [
+        "The check that strips a user-set Content-Type header for multipart/form-data requests (so the real auto-generated boundary is used instead) only matched the exact literal string \"multipart/form-data\" — no trimming, no case-insensitivity, no tolerance for a stray/stale boundary param. Any deviation (e.g. a leading space from curl-style header parsing, different casing, or a leftover boundary copied from elsewhere) left the wrong header in place alongside the real multipart body, causing a boundary mismatch that breaks server-side parsing of the request"
+      ]
+    }
+  },
+  {
     "version": "v1.4.5",
     "date": "03/07/2026",
     "title": "Column Labels Fix & Skill Documentation",
