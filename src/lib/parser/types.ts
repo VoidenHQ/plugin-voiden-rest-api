@@ -60,10 +60,29 @@ type ImportRequestType =
   | "request_group"
   | "workspace";
 
+/**
+ * Raw auth-relevant signals extracted from a pasted cURL command — no
+ * knowledge of auth-block attr schemas here (that stays owned by
+ * voiden-advanced-auth). Passed to registered `context.paste` cURL auth
+ * parsers, the paste-direction mirror of the cURL header extender used
+ * for Copy as cURL. See `curlPaste.ts`.
+ */
+export interface RawCurlAuthInput {
+  username?: string;
+  password?: string;
+  digest?: boolean;
+  ntlm?: boolean;
+  netrc?: boolean;
+  awsSigV4?: string;
+  authorizationHeader?: string;
+}
+
 export interface ImportRequest<T extends object = object> extends Comment {
   _id?: string;
   _type?: ImportRequestType;
   authentication?: Authentication;
+  /** Raw cURL auth signals — only populated by the cURL importer. */
+  rawCurlAuth?: RawCurlAuthInput;
   body?: {
     mimeType?: string;
     text?: string;

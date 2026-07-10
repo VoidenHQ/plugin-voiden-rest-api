@@ -2,8 +2,12 @@
   {
     "version": "v1.4.6",
     "date": "09/07/2026",
-    "title": "Multipart Content-Type Header Fix & Copy as cURL Auth Reliability",
+    "title": "Multipart Content-Type Header Fix & cURL Auth Reliability (Copy & Paste)",
     "changes": {
+      "Added": [
+        "Pasting a cURL command now detects auth from -u/--user, --digest, --ntlm (with DOMAIN\\user splitting), --aws-sigv4, --netrc/-n, and a recognized Authorization header (Bearer/OAuth/Hawk/Basic), and inserts the matching auth block instead of silently dropping the credentials — extraction only, auth-block construction is handled by voiden-advanced-auth's registered parser",
+        "Boolean cURL flags with no value (--digest, --ntlm, --netrc/-n, --get/-G) no longer swallow the next token as their argument — previously a flag positioned right before the URL (e.g. `curl --netrc https://example.com`) could consume the URL itself, leaving the imported request with no URL"
+      ],
       "Fixed": [
         "The check that strips a user-set Content-Type header for multipart/form-data requests (so the real auto-generated boundary is used instead) only matched the exact literal string \"multipart/form-data\" — no trimming, no case-insensitivity, no tolerance for a stray/stale boundary param. Any deviation (e.g. a leading space from curl-style header parsing, different casing, or a leftover boundary copied from elsewhere) left the wrong header in place alongside the real multipart body, causing a boundary mismatch that breaks server-side parsing of the request",
         "Copy as cURL now reads registered auth cURL header extenders (Digest, NTLM, AWS Signature, OAuth2, etc. from voiden-advanced-auth) via a direct context reference instead of a dynamic import of another plugin's app-internal module path, which had no guaranteed runtime resolution and was silently dropping those auth types from generated commands with no error surfaced anywhere",

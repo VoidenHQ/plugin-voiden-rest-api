@@ -27,7 +27,20 @@ const SUPPORTED_ARGS = [
   "F",
   "request",
   "X",
+  "digest",
+  "ntlm",
+  "aws-sigv4",
+  "netrc",
+  "n",
 ];
+
+// Flags that never take a value — the next token is always the next flag or
+// the URL, never this flag's argument. Without this, the generic "next
+// non-flag token is this flag's value" rule below would wrongly swallow the
+// URL (or another flag's value) whenever one of these is the last flag
+// before it, e.g. `curl --netrc https://example.com` would otherwise capture
+// the URL itself as --netrc's value and leave the request with no URL.
+const BOOLEAN_FLAGS = new Set(["digest", "ntlm", "netrc", "n", "get", "G"]);
 
 type Pair = string | boolean;
 
@@ -85,7 +98,11 @@ const importCommand = (parseEntries: ParseEntry[], rawData?: string): ImportRequ
       const nextEntry = parseEntries[i + 1];
       const contentType = findHeader("Content-Type") || findHeader("content-type");
 
-      if (isSingleDash && name.length > 1) {
+      if (BOOLEAN_FLAGS.has(name)) {
+        // Never consume the next token — it's the next flag or the URL,
+        // not this flag's value.
+        value = true;
+      } else if (isSingleDash && name.length > 1) {
         // Handle squished arguments like -XPOST
         value = name.slice(1);
         name = name.slice(0, 1);
@@ -148,7 +165,7 @@ const importCommand = (parseEntries: ParseEntry[], rawData?: string): ImportRequ
     : {};
 
   /// /////// Headers //////////
-  const headers = [...((pairsByName.header as string[] | undefined) || []), ...((pairsByName.H as string[] | undefined) || [])].map((header) => {
+  const allHeaders = [...((pairsByName.header as string[] | undefined) || []), ...((pairsByName.H as string[] | undefined) || [])].map((header) => {
     const [name, value] = header.split(/:(.*)$/);
     // remove final colon from header name if present
     if (!value) {
@@ -162,6 +179,31 @@ const importCommand = (parseEntries: ParseEntry[], rawData?: string): ImportRequ
       value: value.trim(),
     };
   });
+
+  // An Authorization header using a recognized scheme becomes a proper auth
+  // block (see rawCurlAuth below) instead of a raw header, so it isn't left
+  // behind as a duplicate once the auth block is inserted. A scheme this
+  // plugin doesn't recognize is left as a normal header untouched — better to
+  // keep an un-parsed header than silently drop it.
+  const authorizationHeader = allHeaders.find(
+    (h) => h.name.toLowerCase() === "authorization" && /^(Bearer|OAuth|Hawk|Basic)\s/i.test(h.value),
+  );
+  const headers = allHeaders.filter((h) => h !== authorizationHeader);
+
+  /// /////// Raw auth signals for the cURL auth parser registry //////////
+  // No auth-block attr schema knowledge here (owned by voiden-advanced-auth) —
+  // just the raw flags/header text a registered parser needs to build one.
+  const rawCurlAuth = {
+    ...(username ? { username: username.trim(), password: (password || "").trim() } : {}),
+    ...(getPairValue(pairsByName, false, ["digest"]) ? { digest: true } : {}),
+    ...(getPairValue(pairsByName, false, ["ntlm"]) ? { ntlm: true } : {}),
+    ...(getPairValue(pairsByName, false, ["netrc", "n"]) ? { netrc: true } : {}),
+    ...(() => {
+      const sigv4 = getPairValue(pairsByName, "", ["aws-sigv4"]);
+      return sigv4 ? { awsSigV4: sigv4 } : {};
+    })(),
+    ...(authorizationHeader ? { authorizationHeader: authorizationHeader.value } : {}),
+  };
 
   /// /////// Cookies //////////
   const cookieHeaderValue = [...((pairsByName.cookie as string[] | undefined) || []), ...((pairsByName.b as string[] | undefined) || [])]
@@ -255,6 +297,7 @@ const importCommand = (parseEntries: ParseEntry[], rawData?: string): ImportRequ
     method,
     headers,
     authentication,
+    ...(Object.keys(rawCurlAuth).length > 0 ? { rawCurlAuth } : {}),
     body,
   };
 };

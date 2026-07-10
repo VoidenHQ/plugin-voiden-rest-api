@@ -353,14 +353,42 @@ export function showCurlPasteDialog(sectionLabel?: string): Promise<"cancel" | "
 }
 
 /**
+ * Resolve raw cURL auth signals (extracted by the curl importer) into a
+ * ready-to-insert `auth` node via registered context.paste cURL auth parsers
+ * (owned by voiden-advanced-auth — this plugin has no auth-attr-schema
+ * knowledge). Returns null when no auth was detected or no parser handled it.
+ */
+async function resolveCurlAuthNode(
+  request: ImportRequest,
+  context: any,
+): Promise<{ authNode?: any; warning?: string } | null> {
+  const raw = (request as any).rawCurlAuth;
+  if (!raw) return null;
+  const parsers = context?.paste?.getCurlAuthParsers?.() ?? [];
+  for (const parser of parsers) {
+    try {
+      const result = await parser(raw);
+      if (result?.authNode || result?.warning) return result;
+    } catch (err) {
+      console.warn('[voiden-rest-api] cURL auth parser failed:', err);
+    }
+  }
+  return null;
+}
+
+/**
  * Append a parsed curl request as a new section at the end of the document.
  * Inserts a request-separator followed by the request blocks.
  */
-export async function appendCurlAsNewSection(editor: Editor, request: ImportRequest) {
+export async function appendCurlAsNewSection(editor: Editor, request: ImportRequest, context?: any) {
   const endPos = editor.state.doc.content.size;
   const multipartRows = request.body?.mimeType === 'multipart/form-data' && request.body.params
     ? await buildMultipartRows(request.body.params)
     : null;
+  const authResult = await resolveCurlAuthNode(request, context);
+  if (authResult?.warning) {
+    context?.ui?.showToast?.(authResult.warning, 'warning');
+  }
 
   // Build the request blocks as JSON
   const blocks: any[] = [
@@ -372,6 +400,11 @@ export async function appendCurlAsNewSection(editor: Editor, request: ImportRequ
     type: "request",
     content: [convertToMethodNode(request.method), convertToURLNode(request.url)],
   });
+
+  // Auth (detected from -u/--digest/--ntlm/--aws-sigv4/Authorization header)
+  if (authResult?.authNode) {
+    blocks.push(authResult.authNode);
+  }
 
   // Headers
   if (request.headers?.length) {
@@ -407,11 +440,15 @@ export async function appendCurlAsNewSection(editor: Editor, request: ImportRequ
   editor.chain().focus("end").insertContentAt(endPos, blocks).run();
 }
 
-export const pasteCurl = async (editor: Editor, request: ImportRequest) => {
+export const pasteCurl = async (editor: Editor, request: ImportRequest, context?: any) => {
   // Pre-resolve multipart file paths to absolute before the sync editor update.
   let multipartRows: any[] | null = null;
   if (request.body?.mimeType === 'multipart/form-data' && request.body.params) {
     multipartRows = await buildMultipartRows(request.body.params);
+  }
+  const authResult = await resolveCurlAuthNode(request, context);
+  if (authResult?.warning) {
+    context?.ui?.showToast?.(authResult.warning, 'warning');
   }
 
   updateEditorContent(editor, (editorJsonContent) => {
@@ -454,6 +491,14 @@ export const pasteCurl = async (editor: Editor, request: ImportRequest) => {
         "headers-table",
         convertToHeadersTableNode(request.headers.map((header) => [header.name, header.value])),
       );
+    }
+
+    // Step 3b: Add/replace auth block if detected (-u/--digest/--ntlm/--aws-sigv4/
+    // Authorization header). Only touches the auth block when something new was
+    // actually detected — an existing auth block is left alone otherwise, rather
+    // than wiping a manually-configured one just because this paste had no auth.
+    if (authResult?.authNode) {
+      editorJsonContent = findAndReplaceOrAddNode(editorJsonContent, "auth", authResult.authNode);
     }
 
     // Step 4: Add query parameters if present

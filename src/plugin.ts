@@ -578,13 +578,13 @@ const voidenRestApiPlugin = (context: PluginContext) => {
 
                 showCurlPasteDialog(sectionLabel).then(async (choice) => {
                   if (choice === "replace") {
-                    await pasteCurl(editor, request);
+                    await pasteCurl(editor, request, context);
                   } else if (choice === "append") {
-                    await appendCurlAsNewSection(editor, request);
+                    await appendCurlAsNewSection(editor, request, context);
                   }
                 });
               } else {
-                (async () => { await pasteCurl(editor, request); })();
+                (async () => { await pasteCurl(editor, request, context); })();
               }
 
               return true;
@@ -605,7 +605,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
           const { handleCurl, pasteCurl } = await import('./nodes/curlPaste');
           const request = handleCurl(curlString);
           if (!request) return false;
-          await pasteCurl(editor, request);
+          await pasteCurl(editor, request, context);
           return true;
         });
       }
