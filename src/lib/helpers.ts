@@ -28,9 +28,9 @@ export interface VoidenRestApiHelpers {
   // Node creators
   createMethodNode: (method: string) => JSONContent;
   createUrlNode: (url: string) => JSONContent;
-  createHeadersTableNode: (headers: [string, string][]) => JSONContent;
-  createQueryTableNode: (params: [string, string][]) => JSONContent;
-  createPathParamsTableNode: (params: [string, string][]) => JSONContent;
+  createHeadersTableNode: (headers: Array<[string, string] | [string, string, string]>) => JSONContent;
+  createQueryTableNode: (params: Array<[string, string] | [string, string, string]>) => JSONContent;
+  createPathParamsTableNode: (params: Array<[string, string] | [string, string, string]>) => JSONContent;
   createMultipartTableNode: (formData: [string, string][]) => JSONContent;
   createUrlTableNode: (formData: [string, string][]) => JSONContent;
   createCookiesTableNode: (cookies: [string, string][]) => JSONContent;
@@ -60,21 +60,21 @@ export function createUrlNode(url: string): JSONContent {
 /**
  * Create headers table node
  */
-export function createHeadersTableNode(headers: [string, string][]): JSONContent {
+export function createHeadersTableNode(headers: Array<[string, string] | [string, string, string]>): JSONContent {
   return convertToHeadersTableNode(headers);
 }
 
 /**
  * Create query parameters table node
  */
-export function createQueryTableNode(params: [string, string][]): JSONContent {
+export function createQueryTableNode(params: Array<[string, string] | [string, string, string]>): JSONContent {
   return convertToQueryTableNode(params);
 }
 
 /**
  * Create path parameters table node
  */
-export function createPathParamsTableNode(params: [string, string][]): JSONContent {
+export function createPathParamsTableNode(params: Array<[string, string] | [string, string, string]>): JSONContent {
   return convertToPathTableNode(params);
 }
 
