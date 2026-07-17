@@ -62,6 +62,14 @@ var SQ = "'";
 var DQ = '"';
 var DS = "$";
 
+// Sentinel emitted when `$` is followed by no valid variable name (e.g. the
+// `$'...'` ANSI-C quote marker, or a bare `$` before punctuation). Distinct
+// from a literal "$" so callers can tell "this was never a variable
+// reference" apart from a genuine preserved `$VAR`/`${VAR}` (see @custom
+// block in parseEnvVar below), both of which can otherwise start a token
+// with the same "$" character.
+var EMPTY_VAR_MARKER = "\u0000";
+
 var TOKEN = "";
 var mult = 0x100000000; // Math.pow(16, 8);
 for (var i = 0; i < 4; i++) {
@@ -164,9 +172,11 @@ function parseInternal(string, env, opts) {
         i += 1;
         var varend;
         var varname;
+        var braced = false;
         var char = s.charAt(i);
 
         if (char === "{") {
+          braced = true;
           i += 1;
           if (s.charAt(i) === "}") {
             throw new Error("Bad substitution: " + s.slice(i - 2, i + 1));
@@ -191,6 +201,34 @@ function parseInternal(string, env, opts) {
             i += varend.index - 1;
           }
         }
+
+        // @custom start
+        if (varname === "") {
+          // `$` wasn't followed by a valid variable name at all (e.g. the
+          // `$'...'` ANSI-C quote marker, or a bare `$` before punctuation)
+          // — not a variable reference. Emit a sentinel distinct from a
+          // literal "$" so callers (see curl.ts) can strip exactly this
+          // case without also eating the leading "$" of a genuine
+          // preserved `$VAR`/`${VAR}` reference below.
+          return EMPTY_VAR_MARKER;
+        }
+
+        // Pasted curl commands reference the *caller's* shell variables
+        // (e.g. `$AMBER_ADMIN_USER`), which don't exist in this parser's
+        // env. Unlike a real shell, we must not expand unset variables to
+        // "" — that would silently blank out `$VAR`/`${VAR}` anywhere in
+        // the pasted command (URL, auth, headers, body). Preserve the
+        // literal text instead so the user can wire it up to a Voiden
+        // variable afterwards.
+        var hasValue =
+          typeof env === "function"
+            ? typeof env(varname) !== "undefined"
+            : Object.prototype.hasOwnProperty.call(env, varname);
+        if (!hasValue) {
+          return braced ? "${" + varname + "}" : "$" + varname;
+        }
+        // @custom end
+
         return getVar(env, "", varname);
       }
 
@@ -285,4 +323,4 @@ function parse(s, env, opts) {
   }, []);
 }
 
-export { parse };
+export { parse, EMPTY_VAR_MARKER };

@@ -1,5 +1,19 @@
 [
   {
+    "version": "v1.4.7",
+    "date": "16/07/2026",
+    "title": "cURL Import: Preserve Unset Variables & Robust Query Parsing",
+    "changes": {
+      "Added": [
+        "An \"Open Documentation\" item now appears in the right-click block menu for Request, Headers, Query Params, Path Params, Cookies, Options, URL Params, Multipart, JSON/XML/YAML Body, and File Upload blocks, opening the Voiden Blocks docs in your system browser"
+      ],
+      "Fixed": [
+        "Pasting a cURL command that references a shell variable not defined in the parser's environment (e.g. $AMBER_ADMIN_USER) no longer silently blanks it to an empty string wherever it appears — in the URL, auth, headers, or body. The literal $VAR/${VAR} text is preserved so it can be wired up to a Voiden variable afterwards",
+        "Query parameter extraction during cURL import no longer routes through the URL API, which could throw or mangle the URL when it contained unresolved variables or other non-standard characters — the query string is now split off and parsed directly"
+      ]
+    }
+  },
+  {
     "version": "v1.4.6",
     "date": "09/07/2026",
     "title": "Multipart Content-Type Header Fix & cURL Auth Reliability (Copy & Paste)",

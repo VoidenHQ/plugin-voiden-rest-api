@@ -246,10 +246,13 @@ const voidenRestApiPlugin = (context: PluginContext) => {
 
       // Register block outline metadata for the Block Overview panel.
       // Cast to any: registerBlockOutlineMeta is a host-injected API not yet in the published SDK type.
+      // docsUrl defaults every block to the voiden-blocks root for now — per-block deep link paths TBD.
+      const DOCS_URL = "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/endpoint-block";
       (context as any).registerBlockOutlineMeta({
         request: {
           label: "Request",
           icon: "Send",
+          docsUrl: DOCS_URL,
           // Render as a block card at its document position showing "METHOD URL" as preview.
           // method and url are internal children — skipped at top level via SKIP_TYPES in the panel.
           getPreview: (_attrs: Record<string, any>, textContent: string) => {
@@ -264,61 +267,72 @@ const voidenRestApiPlugin = (context: PluginContext) => {
             return textContent.length > 50 ? textContent.slice(0, 50) + "…" : textContent;
           },
         },
-        method: { label: "Method", icon: "Zap", skip: true },
-        url: { label: "URL", icon: "Globe", skip: true },
+        method: { label: "Method", icon: "Zap", skip: true, docsUrl: DOCS_URL },
+        url: { label: "URL", icon: "Globe", skip: true, docsUrl: DOCS_URL },
         "headers-table": {
           label: "Headers",
           icon: "Hash",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/headers-block",
           getRowCount: (_attrs, childCount) => childCount > 0 ? childCount : undefined,
         },
         "query-table": {
           label: "Query Params",
           icon: "Search",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/query-params-block",
           getRowCount: (_attrs, childCount) => childCount > 0 ? childCount : undefined,
         },
         "path-table": {
           label: "Path Params",
           icon: "Route",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/path-params-block",
           getRowCount: (_attrs, childCount) => childCount > 0 ? childCount : undefined,
         },
         "cookies-table": {
           label: "Cookies",
           icon: "Cookie",
+          docsUrl: DOCS_URL,
           getRowCount: (_attrs, childCount) => childCount > 0 ? childCount : undefined,
         },
         "options-table": {
           label: "Options",
           icon: "Settings2",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/options-block",
           getRowCount: (_attrs, childCount) => childCount > 0 ? childCount : undefined,
         },
         "url-table": {
           label: "URL Params",
           icon: "Globe",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/url-encoded-block",
           getRowCount: (_attrs, childCount) => childCount > 0 ? childCount : undefined,
         },
         "multipart-table": {
           label: "Multipart",
           icon: "Layers",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/multipart-table-block",
           getRowCount: (_attrs, childCount) => childCount > 0 ? childCount : undefined,
         },
         json_body: {
           label: "JSON Body",
           icon: "Braces",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/json-block",
           getPreview: (attrs) => attrs?.language || "json",
         },
         xml_body: {
           label: "XML Body",
           icon: "Code2",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/xml-block",
           getPreview: () => "xml",
         },
         yml_body: {
           label: "YAML Body",
           icon: "AlignLeft",
+          docsUrl: DOCS_URL,
           getPreview: () => "yaml",
         },
         restFile: {
-          label: "File Upload",
+          label: "Binary File",
           icon: "FileUp",
+          docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/binary-file-block",
           getPreview: (attrs) => attrs?.fileName || undefined,
         },
       });

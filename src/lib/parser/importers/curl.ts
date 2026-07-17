@@ -1,5 +1,5 @@
 import { ControlOperator, ParseEntry } from "shell-quote";
-import { parse, CURL_DATA_FLAGS } from "./shell-quote-override";
+import { parse, CURL_DATA_FLAGS, EMPTY_VAR_MARKER } from "./shell-quote-override";
 
 import { Converter, ImportRequest, Parameter, PostData } from "../types";
 import { Request, RequestParam } from "@voiden/sdk/shared";
@@ -142,14 +142,17 @@ const importCommand = (parseEntries: ParseEntry[], rawData?: string): ImportRequ
 
   try {
     const urlValue = getPairValue(pairsByName, (singletons[0] as string) || "", ["url"]);
-    const { searchParams, href, search } = new URL(urlValue.startsWith("http") ? urlValue : `http://${urlValue}`);
+    const qIdx = urlValue.indexOf("?");
+    const rawBase = qIdx === -1 ? urlValue : urlValue.slice(0, qIdx);
+    const rawQuery = qIdx === -1 ? "" : urlValue.slice(qIdx + 1);
+    const searchParams = new URLSearchParams(rawQuery);
     parameters = Array.from(searchParams.entries()).map(([name, value]) => ({
       name,
       value,
       disabled: false,
     }));
 
-    url = href.replace(search, "").replace(/\/$/, "");
+    url = rawBase.replace(/\/$/, "");
   } catch (error) {
     /* empty */
   }
@@ -470,7 +473,7 @@ export const convert: Converter = (rawData) => {
 
   for (const parseEntry of parseEntries) {
     if (typeof parseEntry === "string") {
-      if (parseEntry.startsWith("$")) {
+      if (parseEntry.startsWith(EMPTY_VAR_MARKER)) {
         currentCommand.push(parseEntry.slice(1, Infinity));
       } else {
         currentCommand.push(parseEntry);
