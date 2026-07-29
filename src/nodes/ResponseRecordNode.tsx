@@ -243,7 +243,13 @@ export const createResponseRecordNode = (NodeViewWrapper: any, CodeEditor: any) 
     },
 
     addNodeView() {
-      return ReactNodeViewRenderer(ResponseRecordComponent);
+      return ReactNodeViewRenderer(ResponseRecordComponent, {
+        // This node has no ProseMirror content (atom, no contentDOM) — its body/headers
+        // sections are plain React DOM. Without this, clicking inside them falls through
+        // to ProseMirror's default click handling, which can't resolve a cursor position
+        // inside an atom node and snaps the selection to the block before/after instead.
+        stopEvent: () => true,
+      });
     },
   });
 };
