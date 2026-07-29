@@ -116,9 +116,24 @@ const createRestApiRunner: RunnerFactory = (context: RunnerContext) => {
       // ── Request builder ───────────────────────────────────────────────────
       // Registers with the shared RequestOrchestrator. If this plugin is disabled
       // its handler is never registered → REST requests fail gracefully.
+      //
+      // onBuildRequest handlers run in plugin-load order (registry order — not
+      // guaranteed REST-then-auth or auth-then-REST), each receiving the previous
+      // handler's output as `request`. voiden-advanced-auth registers its own
+      // handler that turns the `auth` block into extra header/query rows, so we
+      // append our headers-table/query-table rows onto whatever's already in
+      // `request` (rather than replacing it) — that way neither plugin's
+      // contribution gets discarded no matter which one runs first.
       context.onBuildRequest((request, blocks) => {
         const built = buildRequest(blocks)
-        return built ?? request
+        if (!built) return request
+        const priorHeaders = Array.isArray((request as any)?.headers) ? (request as any).headers : []
+        const priorQueryParams = Array.isArray((request as any)?.queryParams) ? (request as any).queryParams : []
+        return {
+          ...built,
+          headers: [...priorHeaders, ...built.headers],
+          queryParams: [...priorQueryParams, ...built.queryParams],
+        }
       })
     },
   }

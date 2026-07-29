@@ -16,6 +16,7 @@ import { createResponseBodyNode } from './nodes/ResponseBodyNode';
 import manifest from './manifest.json';
 import React from 'react';
 import { createResponseDocNode } from './nodes/ResponseDocNode';
+import { createResponseRecordNode } from './nodes/ResponseRecordNode';
 // CopyCurlButton available inline on MethodNode — top-bar action removed
 
 type EditorTab = { title?: string; content?: string; tabId?: string };
@@ -188,11 +189,15 @@ const voidenRestApiPlugin = (context: PluginContext) => {
       const RequestHeadersNode = createRequestHeadersNode(NodeViewWrapper, CodeEditor, useParentResponseDoc);
       const ResponseBodyNode = createResponseBodyNode(NodeViewWrapper, CodeEditor, useParentResponseDoc, useResponseBodyHeight, Tip);
       const ResponseDocNode = createResponseDocNode(NodeViewWrapper);
+      // Persisted response record — written by voiden-mcp-server's write_result
+      // tool (or the voiden-runner CLI), not part of the live response-doc panel.
+      const ResponseRecordNode = createResponseRecordNode(NodeViewWrapper, CodeEditor);
       context.registerVoidenExtension(ResponseStatusNode);
       context.registerVoidenExtension(ResponseHeadersNode);
       context.registerVoidenExtension(ResponseBodyNode);
       context.registerVoidenExtension(RequestHeadersNode);
       context.registerVoidenExtension(ResponseDocNode);
+      context.registerVoidenExtension(ResponseRecordNode);
 
       // Register linkable node types (for external file linking)
 
@@ -218,6 +223,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
         'response-headers',
         'request-headers',
         'response-status',
+        'response',
       ]);
 
       // Register display names for node types (for UI block picker)
@@ -241,6 +247,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
         'request-headers': 'Request Headers',
         'xml_body': 'XML Body',
         'yml_body': 'YAML Body',
+        'response': 'Response Recorded',
       });
 
 
@@ -334,6 +341,12 @@ const voidenRestApiPlugin = (context: PluginContext) => {
           icon: "FileUp",
           docsUrl: "https://docs.voiden.md/docs/core-features-section/voiden-blocks/rest-blocks/binary-file-block",
           getPreview: (attrs) => attrs?.fileName || undefined,
+        },
+        response: {
+          label: "Response Recorded",
+          icon: "History",
+          docsUrl: "",
+          getPreview: (attrs) => attrs?.status ? `${attrs.status} ${attrs.statusText ?? ""}`.trim() : attrs?.error ? "error" : undefined,
         },
       });
 
@@ -494,6 +507,10 @@ const voidenRestApiPlugin = (context: PluginContext) => {
           );
         } catch (error) {
           console.error('[voiden-rest-api] onProcessResponse failed:', error);
+          // Rethrow so requestOrchestrator's handler loop notices and clears the
+          // stuck-loading state instead of leaving the UI on an infinite spinner —
+          // swallowing it here meant the failure never left this function at all.
+          throw error;
         }
       });
 

@@ -26,7 +26,8 @@
         "yml_body",
         "response-status",
         "response-headers",
-        "response-body"
+        "response-body",
+        "response"
       ],
       "allowExtensions": true,
       "description": "Owns 14 block types for HTTP request/response building and visualization"

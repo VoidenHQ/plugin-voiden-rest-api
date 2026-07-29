@@ -9,6 +9,7 @@ export { createJsonNode } from './JsonNode';
 export { createXMLNode } from './XMLNode';
 export { createYmlNode } from './YmlNode';
 export { createResponseDocNode, useParentResponseDoc } from './ResponseDocNode';
+export { createResponseRecordNode } from './ResponseRecordNode';
 export {
   // Factory functions (accept RequestBlockHeader and openFile callback)
   createHeadersTableNodeView,
