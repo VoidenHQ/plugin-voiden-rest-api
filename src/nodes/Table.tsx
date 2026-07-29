@@ -3,15 +3,6 @@ import React from "react";
 import { CellSelection } from "@tiptap/pm/tables";
 import { Editor, mergeAttributes, Node, NodeViewProps } from "@tiptap/core";
 import { NodeViewContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
-import {
-  HttpHeadersHelp,
-  HttpQueryParamsHelp,
-  HttpUrlFormHelp,
-  HttpMultipartFormHelp,
-  HttpPathParamsHelp,
-  HttpCookiesHelp,
-  RequestOptionsHelp,
-} from "../help";
 
 export function isCellSelection(value: unknown): value is CellSelection {
   return value instanceof CellSelection;
@@ -80,7 +71,7 @@ const ColumnLabels = ({ hasDescription }: { hasDescription: boolean }) => {
 };
 
 const createNodeView =
-  (title: string, RequestBlockHeader: any, openFile?: (relativePath: string) => Promise<void>, helpContent?: React.ReactNode, supportsDescriptionColumn?: boolean) =>
+  (title: string, RequestBlockHeader: any, openFile?: (relativePath: string) => Promise<void>, blockType?: string, supportsDescriptionColumn?: boolean) =>
   ({ editor, node, getPos }: NodeViewProps) => {
     const isEditable = !node?.attrs?.importedFrom || title === "Multipart Form";
     const columnCount = node.firstChild?.firstChild?.childCount ?? 0;
@@ -97,7 +88,7 @@ const createNodeView =
             editor={editor}
             importedDocumentId={node.attrs.importedFrom}
             openFile={openFile}
-            helpContent={helpContent}
+            blockType={blockType}
             actions={
               showAddDescription ? (
                 <button
@@ -158,7 +149,7 @@ export const createHeadersTableNodeView = (RequestBlockHeader: any, openFile?: (
       return ["headers-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-HEADERS", RequestBlockHeader, openFile, <HttpHeadersHelp />, true));
+      return ReactNodeViewRenderer(createNodeView("HTTP-HEADERS", RequestBlockHeader, openFile, "headers-table", true));
     },
   });
 
@@ -179,7 +170,7 @@ export const createQueryTableNodeView = (RequestBlockHeader: any, openFile?: (re
       return ["query-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-QUERY-PARAMS", RequestBlockHeader, openFile, <HttpQueryParamsHelp />, true));
+      return ReactNodeViewRenderer(createNodeView("HTTP-QUERY-PARAMS", RequestBlockHeader, openFile, "query-table", true));
     },
   });
 
@@ -200,7 +191,7 @@ export const createURLTableNodeView = (RequestBlockHeader: any, openFile?: (rela
       return ["url-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-URL-FORM", RequestBlockHeader, openFile, <HttpUrlFormHelp />, true));
+      return ReactNodeViewRenderer(createNodeView("HTTP-URL-FORM", RequestBlockHeader, openFile, "url-table", true));
     },
   });
 
@@ -221,7 +212,7 @@ export const createMultipartTableNodeView = (RequestBlockHeader: any, openFile?:
       return ["multipart-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-MULTIPART-FORM-DATA", RequestBlockHeader, openFile, <HttpMultipartFormHelp />, true));
+      return ReactNodeViewRenderer(createNodeView("HTTP-MULTIPART-FORM-DATA", RequestBlockHeader, openFile, "multipart-table", true));
     },
   });
 
@@ -242,7 +233,7 @@ export const createPathParamsTableNodeView = (RequestBlockHeader: any, openFile?
       return ["path-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-PATH-PARAMS", RequestBlockHeader, openFile, <HttpPathParamsHelp />, true));
+      return ReactNodeViewRenderer(createNodeView("HTTP-PATH-PARAMS", RequestBlockHeader, openFile, "path-table", true));
     },
   });
 
@@ -263,7 +254,7 @@ export const createCookiesTableNodeView = (RequestBlockHeader: any, openFile?: (
       return ["cookies-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("HTTP-COOKIES", RequestBlockHeader, openFile, <HttpCookiesHelp />));
+      return ReactNodeViewRenderer(createNodeView("HTTP-COOKIES", RequestBlockHeader, openFile, "cookies-table"));
     },
   });
 
@@ -284,7 +275,7 @@ export const createOptionsTableNodeView = (RequestBlockHeader: any, openFile?: (
       return ["options-table", mergeAttributes(HTMLAttributes), 0];
     },
     addNodeView() {
-      return ReactNodeViewRenderer(createNodeView("REQUEST-OPTIONS", RequestBlockHeader, openFile, <RequestOptionsHelp />, true));
+      return ReactNodeViewRenderer(createNodeView("REQUEST-OPTIONS", RequestBlockHeader, openFile, "options-table", true));
     },
   });
 

@@ -691,6 +691,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
         HttpYmlBodyHelp,
         HttpCookiesHelp,
         RequestOptionsHelp,
+        HttpBinaryFileHelp,
       } = await import('./help/index');
 
       (context as any).registerHelpCommand?.({
@@ -752,6 +753,24 @@ const voidenRestApiPlugin = (context: PluginContext) => {
         label: 'Request Options',
         description: 'Learn about per-request configuration options',
         component: RequestOptionsHelp,
+      });
+
+      // ── Inline block "?" help tooltip (RequestBlockHeader) ──────────────────
+      // Registers the same Help components above against their block type, so
+      // RequestBlockHeader's blockType prop can look them up automatically
+      // instead of each NodeView importing/wiring the component by hand.
+      (context as any).registerBlockHelp?.({
+        'headers-table': HttpHeadersHelp,
+        'query-table': HttpQueryParamsHelp,
+        'url-table': HttpUrlFormHelp,
+        'multipart-table': HttpMultipartFormHelp,
+        'path-table': HttpPathParamsHelp,
+        'json_body': HttpJsonBodyHelp,
+        'xml_body': HttpXmlBodyHelp,
+        'yml_body': HttpYmlBodyHelp,
+        'cookies-table': HttpCookiesHelp,
+        'options-table': RequestOptionsHelp,
+        'restFile': HttpBinaryFileHelp,
       });
 
       // Inject context into extension BEFORE calling onLoad

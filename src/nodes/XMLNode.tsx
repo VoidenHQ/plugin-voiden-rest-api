@@ -3,7 +3,6 @@ import { mergeAttributes, Node, NodeViewProps } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import React from "react";
 import { Sparkles } from "lucide-react";
-import { HttpXmlBodyHelp } from "../help";
 
 // Prettify XML using DOMParser and XMLSerializer (browser-native)
 const prettifyXML = (xml: string): string => {
@@ -159,7 +158,7 @@ export const createXMLNode = (NodeViewWrapper: any, CodeEditor: any, RequestBloc
             importedDocumentId={importedFrom}
             openFile={openFile}
             actions={!isImported ? <Actions setText={handlePrettify} /> : undefined}
-            helpContent={<HttpXmlBodyHelp />}
+            blockType="xml_body"
           />
           <div style={{ height: 'auto' }}>
             <CodeEditor

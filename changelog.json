@@ -1,11 +1,12 @@
 [
   {
     "version": "v1.4.8",
-    "date": "28/07/2026",
+    "date": "29/07/2026",
     "title": "Recorded Response Block & Headless Response-Handling Fix",
     "changes": {
       "Added": [
-        "New \"Response Recorded\" block — renders a persisted response record (written by voiden-mcp-server's write_result tool or the voiden-runner CLI) inline in the document, separate from the live Response panel"
+        "New \"Response Recorded\" block — renders a persisted response record (written by voiden-mcp-server's write_result tool or the voiden-runner CLI) inline in the document, separate from the live Response panel",
+        "The File Upload block now shows an inline \"?\" help tooltip in its header, matching the other REST blocks"
       ],
       "Fixed": [
         "Headless (CLI / voiden-mcp) request building no longer discards headers or query params contributed by another plugin's request-build handler (e.g. an auth-block header from voiden-advanced-auth) when both register a handler — previously whichever handler ran second would silently overwrite the other's contribution instead of merging with it",

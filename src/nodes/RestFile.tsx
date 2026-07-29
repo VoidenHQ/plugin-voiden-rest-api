@@ -19,6 +19,7 @@ export const createRestFileNode = (NodeViewWrapper: any, RequestBlockHeader: any
             editor={editor}
             importedDocumentId={importedFrom}
             openFile={openFile}
+            blockType="restFile"
           />
 
           {/* Content area */}

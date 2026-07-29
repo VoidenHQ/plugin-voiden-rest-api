@@ -2,7 +2,6 @@ import { mergeAttributes, Node, NodeViewProps } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import React from "react";
 import { Sparkles } from "lucide-react";
-import { HttpYmlBodyHelp } from "../help";
 
 // Factory function to create YmlNode with context components
 export const createYmlNode = (NodeViewWrapper: any, CodeEditor: any, RequestBlockHeader: any, openFile?: (relativePath: string) => Promise<void>) => {
@@ -74,7 +73,7 @@ export const createYmlNode = (NodeViewWrapper: any, CodeEditor: any, RequestBloc
             importedDocumentId={importedFrom}
             openFile={openFile}
             actions={!isImported ? <Actions setText={handleFormat} /> : undefined}
-            helpContent={<HttpYmlBodyHelp />}
+            blockType="yml_body"
           />
           <div style={{ height: 'auto' }}>
             <CodeEditor

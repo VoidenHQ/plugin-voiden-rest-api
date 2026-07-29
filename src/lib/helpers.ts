@@ -189,6 +189,89 @@ function ensureUIDs(block: JSONContent): JSONContent {
 }
 
 /**
+ * Simplify a ProseMirror table node into the minimal { type: "table", rows: [...] }
+ * shape the desktop app's own save path writes. Mirrors apps/ui's
+ * markdownConverter.ts simplifyTableNode() so blocks built here match
+ * hand-saved ones byte-for-byte.
+ */
+function simplifyTableNode(tableJson: any): any {
+  const simplified: { type: string; rows: any[] } = { type: "table", rows: [] };
+  if (!tableJson.content || !Array.isArray(tableJson.content)) return simplified;
+
+  tableJson.content.forEach((rowNode: any) => {
+    if (rowNode.type !== "tableRow") return;
+    const simpleRow: any = {};
+
+    if (rowNode.attrs && Object.keys(rowNode.attrs).length > 0) {
+      simpleRow.attrs = rowNode.attrs;
+    }
+
+    simpleRow.row = [];
+    if (rowNode.content && Array.isArray(rowNode.content)) {
+      rowNode.content.forEach((cellNode: any) => {
+        if (cellNode.type !== "tableCell" && cellNode.type !== "tableHeader") return;
+
+        let cellValue: any;
+        if (cellNode.content && cellNode.content.length === 1 && cellNode.content[0].type === "paragraph") {
+          const para = cellNode.content[0];
+          if (para.content && para.content.length === 1 && para.content[0].type === "text") {
+            cellValue = para.content[0].text;
+          } else {
+            cellValue = para.content?.map((child: any) => (child.type === "text" ? child.text : child));
+            if (cellValue?.length === 1 && typeof cellValue[0] === "string") {
+              cellValue = cellValue[0];
+            }
+          }
+        } else {
+          cellValue = cellNode.textContent || "";
+        }
+        simpleRow.row.push(cellValue);
+      });
+    }
+    simplified.rows.push(simpleRow);
+  });
+  return simplified;
+}
+
+/**
+ * Recursively collapse a node's `content` array into a plain string when it's
+ * a single text node. Mirrors apps/ui's markdownConverter.ts collapseTextContent().
+ */
+function collapseTextContent(node: any): any {
+  if (!node || typeof node !== "object") return node;
+
+  if (Array.isArray(node.content)) {
+    if (node.content.length === 1 && node.content[0].type === "text" && typeof node.content[0].text === "string") {
+      node.content = node.content[0].text;
+    } else {
+      node.content = node.content.map((child: any) => collapseTextContent(child));
+    }
+  }
+  return node;
+}
+
+/**
+ * Bring a block into the same simplified shape the desktop app writes when a
+ * file is saved from the editor (collapsed text content, flattened table
+ * rows) instead of the raw ProseMirror node shape these builder functions
+ * produce (paragraph > text, table > tableRow > tableCell > paragraph > text).
+ * The desktop editor can inflate the raw shape at display time, but the
+ * headless runner used by voiden-runner only knows how to read the
+ * simplified shape — without this, freshly imported files fail to build a
+ * request until the user opens and re-saves them in the app.
+ */
+function simplifyBlock(block: any): any {
+  let nodeJson = { ...block };
+  if (nodeJson.content && Array.isArray(nodeJson.content)) {
+    nodeJson.content = nodeJson.content.map((child: any) =>
+      child?.type === "table" ? simplifyTableNode(child) : collapseTextContent(child)
+    );
+  }
+  nodeJson = collapseTextContent(nodeJson);
+  return nodeJson;
+}
+
+/**
  * Convert JSONContent blocks to a complete .void file format
  * This generates markdown with YAML frontmatter and voiden blocks
  *
@@ -226,12 +309,13 @@ export function convertBlocksToVoidFile(title: string, blocks: JSONContent[]): s
       voidContent += textContent;
       voidContent += '\n';
     } else {
-      // Ensure all blocks have UIDs
+      // Ensure all blocks have UIDs, then simplify to the runner-compatible shape
       const blockWithUID = ensureUIDs(block);
+      const simplifiedBlock = simplifyBlock(blockWithUID);
 
       voidContent += '```void\n';
       voidContent += '---\n';
-      voidContent += YAML.stringify(blockWithUID, {
+      voidContent += YAML.stringify(simplifiedBlock, {
         lineWidth: 0,
         defaultKeyType: 'PLAIN',
       });

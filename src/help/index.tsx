@@ -497,3 +497,25 @@ export const RequestOptionsHelp = () => (
     </section>
   </div>
 );
+
+export const HttpBinaryFileHelp = () => (
+  <div className="space-y-4">
+    <section>
+      <h3 className="font-semibold mb-2 text-text">Binary File</h3>
+      <p className="text-sm text-comment mb-3">
+        Sends a file's raw bytes directly as the request body — no multipart wrapping, no form
+        boundaries. Use this when an API expects a pure binary upload rather than a form field.
+      </p>
+    </section>
+
+    <section>
+      <h4 className="font-semibold mb-2 text-text">How to Use</h4>
+      <ol className="list-decimal list-inside space-y-1 text-sm text-comment">
+        <li>Insert with <code className="bg-accent/10 px-1 rounded text-text">/file</code></li>
+        <li>Reference the file with <code className="bg-accent/10 px-1 rounded text-text">@filename</code></li>
+        <li>Content-Type is detected and the file is binary-encoded automatically</li>
+        <li>Run with Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux)</li>
+      </ol>
+    </section>
+  </div>
+);

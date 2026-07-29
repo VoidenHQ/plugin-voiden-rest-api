@@ -4,7 +4,6 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 import React from "react";
 import { Sparkles } from "lucide-react";
 import { stripJsonComments } from "../lib/utils";
-import { HttpJsonBodyHelp } from "../help";
 
 // Prettify JSON using native JSON methods
 // Handles JSONC by stripping comments first
@@ -98,7 +97,7 @@ export const createJsonNode = (NodeViewWrapper: any, CodeEditor: any, RequestBlo
             importedDocumentId={importedFrom}
             openFile={openFile}
             actions={!isImported ? <Actions setText={handlePrettify} /> : undefined}
-            helpContent={<HttpJsonBodyHelp />}
+            blockType="json_body"
           />
           <div style={{ height: 'auto' }}>
             <CodeEditor
