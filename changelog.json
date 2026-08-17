@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.4.9",
+    "date": "14/08/2026",
+    "title": "Fix: Non-REST Documents No Longer Lose Their Request to This Plugin",
+    "changes": {
+      "Fixed": [
+        "The request-build handler now leaves a document untouched when it has no REST api/request block at all, instead of always building and returning a request object (method defaulting to GET, url defaulting to \"\"). Previously this only skipped known GraphQL/socket documents by name — any other protocol's document (e.g. an MCP connection block) that happened to run through this handler after its own plugin's handler had it silently discarded, showing \"Nothing to run\" even though a valid request had already been built"
+      ]
+    }
+  },
+  {
     "version": "v1.4.8",
     "date": "29/07/2026",
     "title": "Recorded Response Block & Headless Response-Handling Fix",
