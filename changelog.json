@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.4.10",
+    "date": "19/08/2026",
+    "title": "Fix: Response Record Sections Glitched on Toggle",
+    "changes": {
+      "Fixed": [
+        "The recorded-response block (a persisted `response` fence, e.g. from voiden-mcp-server's write_result) showed Body, Response Headers, and Request as independently-toggleable accordion sections, each able to be open at once — its own React state, one component. Toggling any one of the three re-rendered all of them, and if more than one section was open, each mounted its own read-only CodeMirror instance, so toggling one section visibly flashed/reset the others' already-open code viewers too. Replaced the accordion with a tab bar — only one section, and therefore only ever one CodeMirror instance, is mounted at a time, so switching sections cleanly unmounts the previous one instead of re-rendering siblings"
+      ]
+    }
+  },
+  {
     "version": "v1.4.9",
     "date": "14/08/2026",
     "title": "Fix: Non-REST Documents No Longer Lose Their Request to This Plugin",
