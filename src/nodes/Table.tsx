@@ -44,32 +44,6 @@ const addDescriptionColumn = (editor: Editor, getPos: () => number, wrapperNode:
   editor.chain().focus(pos + 1).addColumnAfter().run();
 };
 
-// Static, non-editable column labels rendered above the actual ProseMirror table.
-// A plain <table> with the same column count and table-fixed/w-full sizing as the
-// real data table below it, so column widths line up exactly.
-const ColumnLabels = ({ hasDescription }: { hasDescription: boolean }) => {
-  const b = '1px solid var(--ui-line)';
-  const thClass = "text-left text-[10px] uppercase tracking-wide font-medium py-1.5 px-3";
-  const cell = (extra: React.CSSProperties = {}): React.CSSProperties => ({
-    color: 'var(--fg-secondary, var(--editor-fg))',
-    borderBottom: b,
-    borderRight: b,
-    ...extra,
-  });
-  return (
-    <table className="w-full table-fixed" style={{ borderSpacing: 0, borderCollapse: 'separate' }} contentEditable={false}>
-      <tbody>
-        <tr>
-          <th style={{ width: 28, minWidth: 28, maxWidth: 28, borderBottom: b, borderRight: b }} />
-          <th className={thClass} style={cell()}>Key</th>
-          <th className={thClass} style={cell(!hasDescription ? { borderRight: 'none' } : {})}>Value</th>
-          {hasDescription && <th className={thClass} style={cell({ borderRight: 'none' })}>Description</th>}
-        </tr>
-      </tbody>
-    </table>
-  );
-};
-
 const createNodeView =
   (title: string, RequestBlockHeader: any, openFile?: (relativePath: string) => Promise<void>, blockType?: string, supportsDescriptionColumn?: boolean) =>
   ({ editor, node, getPos }: NodeViewProps) => {
@@ -102,7 +76,6 @@ const createNodeView =
               ) : undefined
             }
           />
-          {supportsDescriptionColumn && columnCount > 0 && <ColumnLabels hasDescription={columnCount >= 3} />}
           <div
             className="w-full max-w-full"
             contentEditable={editor.isEditable && isEditable}

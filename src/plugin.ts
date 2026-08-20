@@ -407,7 +407,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
           if (editorJson.content?.some((n: any) => n.type === 'socket-request')) return request;
 
           // Get request-building utilities exposed via context
-          const { getTable, parseAuthNode, buildHeadersWithCookies, findNode, findNodes, createNewRequestObject } = (context as any).helpers.requestUtils;
+          const { getTable, parseAuthNode, findNode, findNodes, createNewRequestObject } = (context as any).helpers.requestUtils;
 
           // Import REST-block-specific builders from this plugin — these read json_body,
           // xml_body, yml_body, multipart-table, url-table, restFile node types.
@@ -436,7 +436,8 @@ const voidenRestApiPlugin = (context: PluginContext) => {
           const builtRequest = {
             ...createNewRequestObject({ method, url }),
             protocolType: 'rest',
-            headers: buildHeadersWithCookies(editorJson, undefined),
+            headers: getTable("headers-table", editorJson, undefined),
+            cookies: getTable("cookies-table", editorJson, undefined),
             params: getTable("query-table", editorJson, undefined),
             path_params: getTable("path-table", editorJson, undefined),
             content_type: contentType,
