@@ -385,6 +385,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
       context.registerTableSuggestions('options-table', {
         0: [
           { label: 'follow_redirects', description: 'Follow HTTP redirects (true/false)' },
+          { label: 'disable_tls_verification', description: 'Disable TLS certificate verification for this request only (true/false). Overrides the global setting.' },
         ],
         1: [
           { label: 'true' },
