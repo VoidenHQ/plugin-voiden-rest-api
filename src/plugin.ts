@@ -402,9 +402,16 @@ const voidenRestApiPlugin = (context: PluginContext) => {
         try {
           const editorJson = editor.getJSON();
 
-          // Skip GraphQL and socket documents — those plugins handle their own building
+          // Skip GraphQL, socket, and MCP documents — those plugins handle their own
+          // building. Without this, this handler builds and returns a request
+          // object unconditionally below (even when no REST api/request node
+          // exists — method/url just default to "GET"/""), discarding whatever
+          // an earlier handler in the chain already built instead of leaving
+          // `request` untouched — so a non-REST doc that happens to run this
+          // handler after its own protocol's handler loses its request entirely.
           if (editorJson.content?.some((n: any) => n.type === 'gqlquery')) return request;
           if (editorJson.content?.some((n: any) => n.type === 'socket-request')) return request;
+          if (editorJson.content?.some((n: any) => n.type === 'mcp-connection')) return request;
 
           // Get request-building utilities exposed via context
           const { getTable, parseAuthNode, findNode, findNodes, createNewRequestObject } = (context as any).helpers.requestUtils;
@@ -419,8 +426,16 @@ const voidenRestApiPlugin = (context: PluginContext) => {
 
           // Read method and URL from the api/request container node
           const endpointNode = findNode(editorJson, "api") || findNode(editorJson, "request");
-          const method = endpointNode?.content?.find((n: any) => n.type === "method")?.content?.[0]?.text || "GET";
-          const url = endpointNode?.content?.find((n: any) => n.type === "url")?.content?.[0]?.text || "";
+          // No REST endpoint node at all — not a REST document (belongs to some
+          // other, possibly future, protocol this handler has no name-based skip
+          // for above). Leave `request` untouched rather than building one from
+          // defaulted method="GET"/url="" and discarding whatever another
+          // handler already built — the orchestrator's own "no url" check
+          // correctly reports "nothing to run" on its own when nothing in the
+          // chain ever produces a real url, no REST-specific opinion needed here.
+          if (!endpointNode) return request;
+          const method = endpointNode.content?.find((n: any) => n.type === "method")?.content?.[0]?.text || "GET";
+          const url = endpointNode.content?.find((n: any) => n.type === "url")?.content?.[0]?.text || "";
 
           const auth = parseAuthNode(editorJson);
           const optionsTable = getTable("options-table", editorJson, undefined);

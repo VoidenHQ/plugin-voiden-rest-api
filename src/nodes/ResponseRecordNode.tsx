@@ -81,9 +81,17 @@ export const createResponseRecordNode = (NodeViewWrapper: any, CodeEditor: any) 
       error,
     } = node.attrs as ResponseRecordAttrs;
 
-    const [bodyOpen, setBodyOpen] = React.useState(true);
-    const [headersOpen, setHeadersOpen] = React.useState(false);
-    const [requestOpen, setRequestOpen] = React.useState(false);
+    // Exactly one section visible at a time (a tab bar, not independent
+    // accordions) — the previous design let Body and Request both be open
+    // simultaneously, each mounting its own <CodeEditor>. Toggling ANY one
+    // of the three open/closed booleans re-rendered this whole component,
+    // which re-rendered every OTHER currently-mounted CodeEditor too — that
+    // combination is what produced the glitch/flash on toggle. With a
+    // single active tab, switching tabs unmounts the previous CodeEditor
+    // and mounts the next one; there's never more than one on screen, and
+    // never a "sibling section re-rendered another's editor" case at all.
+    type Tab = "body" | "headers" | "request";
+    const [activeTab, setActiveTab] = React.useState<Tab>("body");
 
     const isSuccess = !error && typeof status === "number" && status >= 200 && status < 300;
     const isClientOrServerError = typeof status === "number" && status >= 400;
@@ -98,37 +106,31 @@ export const createResponseRecordNode = (NodeViewWrapper: any, CodeEditor: any) 
     const headerEntries = (headers: Record<string, string> | null) =>
       headers ? Object.entries(headers) : [];
 
-    const Section = ({
-      title,
-      open,
-      onToggle,
-      children,
-    }: {
-      title: string;
-      open: boolean;
-      onToggle: () => void;
-      children: React.ReactNode;
-    }) => (
-      <div className="border-t border-border">
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-panel select-none"
-          onClick={onToggle}
-        >
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 12 12"
-            fill="none"
-            className="text-comment"
-            style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)", transition: "transform 0.15s" }}
-          >
-            <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="text-xs font-semibold text-comment">{title}</span>
+    const TabBar = () => {
+      const tabs: { id: Tab; label: string }[] = [
+        { id: "body", label: "Body" },
+        { id: "headers", label: "Response Headers" },
+        { id: "request", label: "Request" },
+      ];
+      return (
+        <div className="flex items-center border-t border-b border-border">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-1.5 text-xs font-semibold select-none border-b-2 -mb-px transition-colors ${
+                activeTab === tab.id
+                  ? "text-text border-accent"
+                  : "text-comment border-transparent hover:text-text"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        {open && <div className="px-3 pb-2">{children}</div>}
-      </div>
-    );
+      );
+    };
 
     const HeaderList = ({ headers }: { headers: Record<string, string> | null }) => {
       const entries = headerEntries(headers);
@@ -177,32 +179,36 @@ export const createResponseRecordNode = (NodeViewWrapper: any, CodeEditor: any) 
             <div className="px-3 pb-2 text-xs text-comment">Body truncated when recorded.</div>
           )}
 
-          <Section title="Body" open={bodyOpen} onToggle={() => setBodyOpen(!bodyOpen)}>
-            {body ? (
-              <div className="response-record-editor">
-                <CodeEditor readOnly lang="json" value={prettyBody(body)} showReplace={false} />
-              </div>
-            ) : (
-              <div className="text-xs text-comment py-1">No response body</div>
-            )}
-          </Section>
+          <TabBar />
 
-          <Section title="Response Headers" open={headersOpen} onToggle={() => setHeadersOpen(!headersOpen)}>
-            <HeaderList headers={responseHeaders} />
-          </Section>
-
-          <Section title="Request" open={requestOpen} onToggle={() => setRequestOpen(!requestOpen)}>
-            <div className="text-xs font-semibold text-comment mb-1">Headers</div>
-            <HeaderList headers={requestHeaders} />
-            {requestBody && (
-              <>
-                <div className="text-xs font-semibold text-comment mt-2 mb-1">Body</div>
+          <div className="px-3 py-2">
+            {activeTab === "body" && (
+              body ? (
                 <div className="response-record-editor">
-                  <CodeEditor readOnly lang="json" value={prettyBody(requestBody)} showReplace={false} />
+                  <CodeEditor readOnly lang="json" value={prettyBody(body)} showReplace={false} />
                 </div>
+              ) : (
+                <div className="text-xs text-comment py-1">No response body</div>
+              )
+            )}
+
+            {activeTab === "headers" && <HeaderList headers={responseHeaders} />}
+
+            {activeTab === "request" && (
+              <>
+                <div className="text-xs font-semibold text-comment mb-1">Headers</div>
+                <HeaderList headers={requestHeaders} />
+                {requestBody && (
+                  <>
+                    <div className="text-xs font-semibold text-comment mt-2 mb-1">Body</div>
+                    <div className="response-record-editor">
+                      <CodeEditor readOnly lang="json" value={prettyBody(requestBody)} showReplace={false} />
+                    </div>
+                  </>
+                )}
               </>
             )}
-          </Section>
+          </div>
         </div>
       </NodeViewWrapper>
     );
