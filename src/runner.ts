@@ -11,8 +11,21 @@
  */
 
 import type { RunnerFactory, RunnerContext, Block, CliRequestState } from '@voiden/sdk/runner'
+import { buildContentType, buildBodyParams, extractBinary, type RestDoc } from './lib/requestBuilder.js'
 
-type RestApiRequestState = CliRequestState
+// requestBuilder.ts's BodyParam isn't exported — derive it from buildBodyParams's
+// own return type instead of duplicating the shape or widening requestBuilder.ts's
+// exports just for this.
+type BodyParam = Awaited<ReturnType<typeof buildBodyParams>>[number]
+
+// CliRequestState (from @voiden/sdk, not editable here) doesn't declare
+// bodyParams/binary, but @voiden/executors' secureRequest.ts already reads
+// them loosely off the request state — same shape the app's onBuildRequest
+// handler already populates. Additive only; every existing field is untouched.
+type RestApiRequestState = CliRequestState & {
+  bodyParams?: BodyParam[]
+  binary?: string | string[]
+}
 
 type Row = { key: string; value: string; enabled: boolean }
 
@@ -39,7 +52,7 @@ function extractRows(block: any): Row[] {
  * Returns null when the blocks do not contain a REST request
  * (e.g. GraphQL or socket blocks are present instead).
  */
-export function buildRequest(blocks: Block[]): RestApiRequestState | null {
+export async function buildRequest(blocks: Block[]): Promise<RestApiRequestState | null> {
   // Defer to specialised parsers
   if (blocks.some((b: any) => b.type === 'gqlquery'))       return null
   if (blocks.some((b: any) => b.type === 'socket-request')) return null
@@ -91,6 +104,32 @@ export function buildRequest(blocks: Block[]): RestApiRequestState | null {
       : 'application/x-yaml'
   }
 
+  // multipart-table / restFile (binary body) / fileLink attachments — reused
+  // directly from requestBuilder.ts (the app's own block-parsing logic for
+  // these node types), not reimplemented, so headless stays in lockstep with
+  // whatever the app already does here.
+  let bodyParams: BodyParam[] | undefined
+  let binary: string | string[] | undefined
+  if (!body) {
+    const restDoc = { content: blocks } as unknown as RestDoc
+    const getTableFn = (type: string) => (type === 'headers-table' ? headers : [])
+    const multipartOrFormContentType = buildContentType(restDoc, getTableFn, undefined)
+
+    if (multipartOrFormContentType === 'multipart/form-data' || multipartOrFormContentType === 'application/x-www-form-urlencoded') {
+      const params = await buildBodyParams(restDoc, multipartOrFormContentType)
+      if (params.length > 0) {
+        bodyParams = params
+        contentType = multipartOrFormContentType
+      }
+    }
+
+    const binaryFiles = extractBinary(restDoc)
+    if (binaryFiles) {
+      binary = binaryFiles as string | string[]
+      if (multipartOrFormContentType && multipartOrFormContentType !== 'none') contentType = multipartOrFormContentType
+    }
+  }
+
   return {
     method,
     url,
@@ -99,6 +138,8 @@ export function buildRequest(blocks: Block[]): RestApiRequestState | null {
     pathParams,
     body,
     contentType,
+    bodyParams,
+    binary,
     metadata: {},
   }
 }
@@ -135,8 +176,8 @@ const createRestApiRunner: RunnerFactory = (context: RunnerContext) => {
       // append our headers-table/query-table rows onto whatever's already in
       // `request` (rather than replacing it) — that way neither plugin's
       // contribution gets discarded no matter which one runs first.
-      context.onBuildRequest((request, blocks) => {
-        const built = buildRequest(blocks)
+      context.onBuildRequest(async (request, blocks) => {
+        const built = await buildRequest(blocks)
         if (!built) return request
         const priorHeaders = Array.isArray((request as any)?.headers) ? (request as any).headers : []
         const priorQueryParams = Array.isArray((request as any)?.queryParams) ? (request as any).queryParams : []
@@ -151,4 +192,3 @@ const createRestApiRunner: RunnerFactory = (context: RunnerContext) => {
 }
 
 export default createRestApiRunner
-

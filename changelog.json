@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.4.11",
+    "date": "21/08/2026",
+    "title": "Headless Multipart/Binary Body Support",
+    "changes": {
+      "Added": [
+        "The headless request parser (used by voiden-runner and voiden-mcp, outside the app) now builds multipart/form-data bodies — including file attachments via fileLink — and raw binary bodies (restFile), reusing the exact same block-parsing logic the app already uses. Previously only json_body/xml_body/yml_body were supported headlessly; a request with a multipart-table or restFile body silently sent with no body at all when run outside the app, even though the network layer already fully supported multipart/binary uploads"
+      ]
+    }
+  },
+  {
     "version": "v1.4.10",
     "date": "19/08/2026",
     "title": "Fix: Response Record Sections Glitched on Toggle",
