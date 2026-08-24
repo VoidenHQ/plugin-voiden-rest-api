@@ -2,6 +2,8 @@
 
 Provides HTTP request/response block types. All blocks live inside or alongside a `request` container.
 
+> **Singleton per section:** `request`, `headers-table`, `query-table`, `path-table`, `url-table`, `multipart-table`, `cookies-table`, and `options-table` are each allowed at most once per section — edit the existing block instead of inserting a second one. `json_body`, `xml_body`, and `yml_body` are each independently singleton (checked only against themselves). Full cross-plugin table: base voiden skill → "Singleton Blocks — One Per Section".
+
 ### request — Request Container
 
 Always required. Wraps all other blocks for a single HTTP call.

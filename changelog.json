@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.4.12",
+    "date": "24/08/2026",
+    "title": "Docs: Skill Now Documents Singleton Block Rules",
+    "changes": {
+      "Fixed": [
+        "The bundled skill.md now documents which block types this extension owns are allowed at most once per request section (request, headers-table, query-table, path-table, url-table, multipart-table, cookies-table, options-table — plus json_body/xml_body/yml_body, each independently). This was previously undocumented, which could lead an AI agent authoring .void files directly to insert duplicate singleton blocks — something the app has no load-time guard against."
+      ]
+    }
+  },
+  {
     "version": "v1.4.11",
     "date": "21/08/2026",
     "title": "Headless Multipart/Binary Body Support",
