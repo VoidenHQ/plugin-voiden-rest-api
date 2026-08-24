@@ -3,6 +3,8 @@
 Provides HTTP request/response block types. All blocks live inside or alongside a `request` container.
 
 > **Singleton per section:** `request`, `headers-table`, `query-table`, `path-table`, `url-table`, `multipart-table`, `cookies-table`, and `options-table` are each allowed at most once per section — edit the existing block instead of inserting a second one. `json_body`, `xml_body`, and `yml_body` are each independently singleton (checked only against themselves). Full cross-plugin table: base voiden skill → "Singleton Blocks — One Per Section".
+>
+> **Two different `{{}}` syntaxes — don't mix them up.** A value from your environment profile (`.voiden/env-*.yaml`) is `{{VARIABLE_NAME}}`. A value captured at runtime — by a `runtime-variables` block or a script's `voiden.variables.set()` — is `{{process.variable_name}}`, prefix required; `{{variable_name}}` alone will silently never resolve it. If a header/query/body value is described as coming from "an earlier request" or "the previous response," it almost always needs the `process.` form. See the base voiden skill's `runtime-variables` section for the full explanation.
 
 ### request — Request Container
 
@@ -67,7 +69,7 @@ content:
       - attrs: { disabled: false }
         row: [Content-Type, application/json, ""]
       - attrs: { disabled: false }
-        row: [Authorization, "Bearer {{API_TOKEN}}", "Auth token from the login response"]
+        row: [Authorization, "Bearer {{process.ACCESS_TOKEN}}", "Captured by an earlier section's post_script or runtime-variables block — process. prefix required, {{ACCESS_TOKEN}} alone will not resolve"]
       - attrs: { disabled: true }
         row: [X-Debug, "true", "Only needed against the staging API"]
 ---
