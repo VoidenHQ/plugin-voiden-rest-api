@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.4.13",
+    "date": "09/09/2026",
+    "title": "Fix: Headers/Query/Path Tables Dropped All Fields Headlessly",
+    "changes": {
+      "Fixed": [
+        "The headless runner's extractRows() (used by voiden-runner and voiden-mcp for headers-table, query-table, and path-table) was still hardcoded to read the old compact table shape (`{type: \"table\", rows: [{attrs, row: [key, value]}]}`) directly. Once the shared .void parser started always inflating tables into the full tableRow/tableCell/paragraph structure (matching what the app has always produced), extractRows() silently returned zero rows for all three table types — headers, query params, and path params were dropped entirely when running headlessly, even though the same request worked correctly inside the app. A request with an auth header in a headers-table, for example, would send with no Authorization/apy-token header at all and could still report success depending on the endpoint, since the response itself came back normally. extractRows() now primarily reads the expanded tableRow/tableCell form (matching requestBuilder.ts's buildBodyParams), with the old compact-shape logic kept as a defensive fallback."
+      ]
+    }
+  },
+  {
     "version": "v1.4.12",
     "date": "24/08/2026",
     "title": "Docs: Skill Now Documents Singleton Block Rules",
