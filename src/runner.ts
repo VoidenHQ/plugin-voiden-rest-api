@@ -29,11 +29,39 @@ type RestApiRequestState = CliRequestState & {
 
 type Row = { key: string; value: string; enabled: boolean }
 
+/** A cell's plain-text value, navigating the same tableCell -> paragraph ->
+ *  text shape @voiden/executors' voidParser.ts now always inflates a
+ *  compact-saved table into (see its own inflateTableNode doc comment) —
+ *  matches requestBuilder.ts's buildBodyParams text-cell reading exactly,
+ *  since headers-table and multipart-table are both just tables. */
+function cellText(cell: any): string {
+  return String(cell?.content?.[0]?.content?.[0]?.text ?? '').trim()
+}
+
 function extractRows(block: any): Row[] {
   const rows: Row[] = []
   if (!Array.isArray(block.content)) return rows
   for (const child of block.content) {
-    if (child.type === 'table' && Array.isArray(child.rows)) {
+    if (child.type !== 'table') continue
+
+    // Expanded tableRow/tableCell form — what parseVoidFile always produces
+    // now. The compact `{ rows: [...] }` shorthand below is a defensive
+    // fallback only, for anything that might still hand this function
+    // un-inflated blocks directly (bypassing parseVoidFile) — parsed .void
+    // files never reach this branch anymore.
+    if (Array.isArray(child.content)) {
+      for (const tableRow of child.content) {
+        if (tableRow.type !== 'tableRow') continue
+        const disabled = tableRow.attrs?.disabled === true
+        const cells = Array.isArray(tableRow.content) ? tableRow.content : []
+        const key = cellText(cells[0])
+        const value = cellText(cells[1])
+        if (key) rows.push({ key, value, enabled: !disabled })
+      }
+      continue
+    }
+
+    if (Array.isArray(child.rows)) {
       for (const r of child.rows) {
         const disabled = r.attrs?.disabled === true
         if (Array.isArray(r.row) && r.row.length >= 2) {
