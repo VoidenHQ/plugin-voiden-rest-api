@@ -38,6 +38,17 @@ function cellText(cell: any): string {
   return String(cell?.content?.[0]?.content?.[0]?.text ?? '').trim()
 }
 
+/** A method/url node's plain-text value. Most saved documents store it as a
+ *  plain string, but some (and everything the app's own builder in plugin.ts
+ *  reads via `.content?.[0]?.text`) use the nested text-node form instead —
+ *  accept both so a file that builds in the app also builds headless. */
+function nodeText(node: any): string {
+  if (typeof node.content === 'string') return node.content
+  if (Array.isArray(node.content))
+    return node.content.map((n: any) => n?.text ?? '').join('')
+  return ''
+}
+
 function extractRows(block: any): Row[] {
   const rows: Row[] = []
   if (!Array.isArray(block.content)) return rows
@@ -92,10 +103,8 @@ export async function buildRequest(blocks: Block[]): Promise<RestApiRequestState
   let url = ''
   if (Array.isArray(requestBlock.content)) {
     for (const node of requestBlock.content) {
-      if (node.type === 'method' && typeof node.content === 'string')
-        method = node.content.trim().toUpperCase() || 'GET'
-      if (node.type === 'url' && typeof node.content === 'string')
-        url = node.content.trim()
+      if (node.type === 'method') method = nodeText(node).trim().toUpperCase() || 'GET'
+      if (node.type === 'url') url = nodeText(node).trim()
     }
   }
   if (!url) return null
