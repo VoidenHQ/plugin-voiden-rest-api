@@ -38,15 +38,13 @@ function cellText(cell: any): string {
   return String(cell?.content?.[0]?.content?.[0]?.text ?? '').trim()
 }
 
-/** A method/url node's plain-text value. Most saved documents store it as a
- *  plain string, but some (and everything the app's own builder in plugin.ts
- *  reads via `.content?.[0]?.text`) use the nested text-node form instead —
- *  accept both so a file that builds in the app also builds headless. */
+/** A method/url node's plain-text value — either a plain string, or the
+ *  nested text-node form plugin.ts's onBuildRequest reads
+ *  (`.content?.[0]?.text`), so a file that builds in the app also builds
+ *  headless. */
 function nodeText(node: any): string {
   if (typeof node.content === 'string') return node.content
-  if (Array.isArray(node.content))
-    return node.content.map((n: any) => n?.text ?? '').join('')
-  return ''
+  return String(node.content?.[0]?.text ?? '')
 }
 
 function extractRows(block: any): Row[] {
