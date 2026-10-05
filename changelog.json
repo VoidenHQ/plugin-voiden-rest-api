@@ -1,5 +1,15 @@
 [
   {
+    "version": "v1.4.14",
+    "date": "05/10/2026",
+    "title": "Fix: Headless Runner Rejected Nested Method/URL Blocks",
+    "changes": {
+      "Fixed": [
+        "The headless runner (voiden-runner, voiden-mcp) now runs requests whose method and URL are stored as nested text nodes, matching the app — contributed by [@JohnSBarden](https://github.com/JohnSBarden)"
+      ]
+    }
+  },
+  {
     "version": "v1.4.13",
     "date": "09/09/2026",
     "title": "Fix: Headers/Query/Path Tables Dropped All Fields Headlessly",
