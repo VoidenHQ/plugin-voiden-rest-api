@@ -38,6 +38,15 @@ function cellText(cell: any): string {
   return String(cell?.content?.[0]?.content?.[0]?.text ?? '').trim()
 }
 
+/** A method/url node's plain-text value — either a plain string, or the
+ *  nested text-node form plugin.ts's onBuildRequest reads
+ *  (`.content?.[0]?.text`), so a file that builds in the app also builds
+ *  headless. */
+function nodeText(node: any): string {
+  if (typeof node.content === 'string') return node.content
+  return String(node.content?.[0]?.text ?? '')
+}
+
 function extractRows(block: any): Row[] {
   const rows: Row[] = []
   if (!Array.isArray(block.content)) return rows
@@ -92,10 +101,8 @@ export async function buildRequest(blocks: Block[]): Promise<RestApiRequestState
   let url = ''
   if (Array.isArray(requestBlock.content)) {
     for (const node of requestBlock.content) {
-      if (node.type === 'method' && typeof node.content === 'string')
-        method = node.content.trim().toUpperCase() || 'GET'
-      if (node.type === 'url' && typeof node.content === 'string')
-        url = node.content.trim()
+      if (node.type === 'method') method = nodeText(node).trim().toUpperCase() || 'GET'
+      if (node.type === 'url') url = nodeText(node).trim()
     }
   }
   if (!url) return null
