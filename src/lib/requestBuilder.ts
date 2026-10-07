@@ -19,6 +19,7 @@ interface BodyParam {
   value: string | File | any;
   type?: "text" | "file";
   enabled: boolean;
+  omitIfUnresolved?: boolean;
   importedFrom?: string;
 }
 
@@ -175,10 +176,11 @@ export const buildBodyParams = async (
 
         if (nodeType === "multipart-table") {
           const enabled = !row.attrs?.disabled;
+          const omitIfUnresolved = row.attrs?.omitIfUnresolved === true;
           // Legacy: single file stored directly in cell attrs
           const legacyFilePath = valCol.attrs?.file;
           if (legacyFilePath) {
-            if (key) allBodyParams.push({ enabled, type: "file", key, value: legacyFilePath, importedFrom });
+            if (key) allBodyParams.push({ enabled, omitIfUnresolved, type: "file", key, value: legacyFilePath, importedFrom });
             continue;
           }
 
@@ -203,12 +205,12 @@ export const buildBodyParams = async (
           if (allFileNodes.length > 0) {
             // Emit one BodyParam per file — FormData.append handles same-key multi-file natively
             for (const fp of allFileNodes) {
-              if (key) allBodyParams.push({ enabled, type: "file", key, value: fp, importedFrom });
+              if (key) allBodyParams.push({ enabled, omitIfUnresolved, type: "file", key, value: fp, importedFrom });
             }
           } else {
             // Plain text value
             const textValue = ((valCol.content?.[0]?.content?.[0]?.text) || "").trim();
-            if (key && textValue) allBodyParams.push({ enabled, type: "text", key, value: textValue, importedFrom });
+            if (key && textValue) allBodyParams.push({ enabled, omitIfUnresolved, type: "text", key, value: textValue, importedFrom });
           }
           continue;
         } else {
@@ -217,7 +219,14 @@ export const buildBodyParams = async (
         }
 
         if (!key || !value) continue;
-        allBodyParams.push({ enabled: !row.attrs?.disabled, type, key, value, importedFrom });
+        allBodyParams.push({
+          enabled: !row.attrs?.disabled,
+          omitIfUnresolved: row.attrs?.omitIfUnresolved === true,
+          type,
+          key,
+          value,
+          importedFrom,
+        });
       }
     }
   }
