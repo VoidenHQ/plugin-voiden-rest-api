@@ -27,7 +27,7 @@ type RestApiRequestState = CliRequestState & {
   binary?: string | string[]
 }
 
-type Row = { key: string; value: string; enabled: boolean }
+type Row = { key: string; value: string; enabled: boolean; omitIfUnresolved: boolean }
 
 /** A cell's plain-text value, navigating the same tableCell -> paragraph ->
  *  text shape @voiden/executors' voidParser.ts now always inflates a
@@ -62,10 +62,11 @@ function extractRows(block: any): Row[] {
       for (const tableRow of child.content) {
         if (tableRow.type !== 'tableRow') continue
         const disabled = tableRow.attrs?.disabled === true
+        const omitIfUnresolved = tableRow.attrs?.omitIfUnresolved === true
         const cells = Array.isArray(tableRow.content) ? tableRow.content : []
         const key = cellText(cells[0])
         const value = cellText(cells[1])
-        if (key) rows.push({ key, value, enabled: !disabled })
+        if (key) rows.push({ key, value, enabled: !disabled, omitIfUnresolved })
       }
       continue
     }
@@ -73,10 +74,11 @@ function extractRows(block: any): Row[] {
     if (Array.isArray(child.rows)) {
       for (const r of child.rows) {
         const disabled = r.attrs?.disabled === true
+        const omitIfUnresolved = r.attrs?.omitIfUnresolved === true
         if (Array.isArray(r.row) && r.row.length >= 2) {
           const key   = String(r.row[0] ?? '').trim()
           const value = String(r.row[1] ?? '').trim()
-          if (key) rows.push({ key, value, enabled: !disabled })
+          if (key) rows.push({ key, value, enabled: !disabled, omitIfUnresolved })
         }
       }
     }
