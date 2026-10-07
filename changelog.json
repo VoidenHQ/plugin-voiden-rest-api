@@ -1,5 +1,19 @@
 [
   {
+    "version": "v1.4.15",
+    "date": "07/10/2026",
+    "title": "Required Checkbox Support for Request Tables",
+    "changes": {
+      "Added": [
+        "Rows in headers, query params, cookies, URL Form, and Multipart Form tables now honour the Required checkbox — contributed by [@moonlander101](https://github.com/moonlander101)"
+      ],
+      "Fixed": [
+        "The headless runner (voiden-runner, voiden-mcp) now honours the Required checkbox on headers, query params, and form rows",
+        "Request tables no longer show a duplicate Key / Value / Description label row"
+      ]
+    }
+  },
+  {
     "version": "v1.4.14",
     "date": "05/10/2026",
     "title": "Fix: Headless Runner Rejected Nested Method/URL Blocks",
