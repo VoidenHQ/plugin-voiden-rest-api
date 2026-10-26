@@ -1,10 +1,11 @@
 [
   {
-    "version": "v1.4.15",
-    "date": "07/10/2026",
-    "title": "Required Checkbox Support for Request Tables",
+    "version": "v1.4.16",
+    "date": "26/10/2026",
+    "title": "HTTP QUERY Method and Required Checkbox Support",
     "changes": {
       "Added": [
+        "The method block supports the HTTP QUERY method — contributed by [@muhammadlutf1](https://github.com/muhammadlutf1)",
         "Rows in headers, query params, cookies, URL Form, and Multipart Form tables now honour the Required checkbox — contributed by [@moonlander101](https://github.com/moonlander101)"
       ],
       "Fixed": [
