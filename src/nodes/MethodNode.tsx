@@ -78,7 +78,7 @@ export const createMethodNode = (useSendRestRequest: any, context?: any) => {
         <div className="flex items-center gap-2">
           <NodeViewContent
             className={`m-0 font-mono my-0 font-semibold flex-1 ${
-              METHOD_COLORS[method?.toUpperCase() as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"]
+              METHOD_COLORS[method?.toUpperCase() as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS" | "QUERY"]
             }`}
           />
           <button
@@ -153,7 +153,7 @@ export const createMethodNode = (useSendRestRequest: any, context?: any) => {
           "method",
           mergeAttributes(HTMLAttributes, {
             class: `m-0 font-mono my-0 font-semibold ${
-              METHOD_COLORS[node.textContent?.toUpperCase() as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"]
+              METHOD_COLORS[node.textContent?.toUpperCase() as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS" | "QUERY"]
             }`,
           }),
           0,

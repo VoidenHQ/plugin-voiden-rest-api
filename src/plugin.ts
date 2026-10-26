@@ -264,7 +264,7 @@ const voidenRestApiPlugin = (context: PluginContext) => {
           // method and url are internal children — skipped at top level via SKIP_TYPES in the panel.
           getPreview: (_attrs: Record<string, any>, textContent: string) => {
             if (!textContent) return undefined;
-            const methods = ["DELETE", "OPTIONS", "PATCH", "POST", "PUT", "GET", "HEAD"];
+            const methods = ["DELETE", "OPTIONS", "PATCH", "POST", "PUT", "GET", "HEAD", "QUERY"];
             for (const m of methods) {
               if (textContent.startsWith(m)) {
                 const url = textContent.slice(m.length);

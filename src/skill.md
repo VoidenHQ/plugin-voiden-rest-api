@@ -35,7 +35,7 @@ content:
 - type: method
   attrs:
     uid: "uid"
-    method: GET        # GET POST PUT PATCH DELETE HEAD OPTIONS
+    method: GET        # GET POST PUT PATCH DELETE HEAD OPTIONS QUERY
     visible: true
   content: GET
 ```

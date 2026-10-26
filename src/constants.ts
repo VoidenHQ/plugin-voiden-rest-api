@@ -10,6 +10,7 @@ export const METHOD_COLORS = {
   DELETE: "text-http-delete",
   HEAD: "text-http-head",
   OPTIONS: "text-http-options",
+  QUERY: "text-http-query",
 } as {
   [key: string]: string;
 };
