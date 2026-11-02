@@ -1,8 +1,8 @@
 [
   {
     "version": "v1.4.16",
-    "date": "26/10/2026",
-    "title": "HTTP QUERY Method and Required Checkbox Support",
+    "date": "02/11/2026",
+    "title": "HTTP QUERY Method, Required Checkbox Support and Prettify Fixes",
     "changes": {
       "Added": [
         "The method block supports the HTTP QUERY method — contributed by [@muhammadlutf1](https://github.com/muhammadlutf1)",
@@ -10,7 +10,10 @@
       ],
       "Fixed": [
         "The headless runner (voiden-runner, voiden-mcp) now honours the Required checkbox on headers, query params, and form rows",
-        "Request tables no longer show a duplicate Key / Value / Description label row"
+        "Request tables no longer show a duplicate Key / Value / Description label row",
+        "Prettify on the JSON body block no longer rounds large numbers or rewrites decimals like 1.10",
+        "Prettify on the JSON body block keeps comments and formats bodies containing {{variables}}",
+        "Pasting a cURL command no longer rounds large numbers in its JSON body"
       ]
     }
   },
