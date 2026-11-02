@@ -42,18 +42,11 @@ import { Plugin } from "@tiptap/pm/state";
 import { EditorView } from "@tiptap/pm/view";
 import { DOMParser as ProseMirrorDOMParser, Fragment, Node, Slice } from "@tiptap/pm/model";
 import markdownIt from "markdown-it";
+import { prettifyIfValidJson, prettifyJson } from "../lib/prettifyJson";
 // TODO: Expose through SDK
-// import { prettifyJSONC } from "@/utils/jsonc.ts";
 // import { parseMarkdown } from "@/core/editors/voiden/markdownConverter";
 
 // Temporary stub implementations
-const prettifyJSONC = (json: string) => {
-  try {
-    return JSON.stringify(JSON.parse(json), null, 2);
-  } catch {
-    return json;
-  }
-};
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const parseMarkdown = (_markdown: string, _schema: any) => {
@@ -558,7 +551,7 @@ export const pasteCurl = async (editor: Editor, request: ImportRequest, context?
       // Handle JSON body (including JSON variants and hal+json)
       else if (["application/json", "application/hal+json", "application/ld+json", "application/problem+json"].includes(mimeType) && request.body.text) {
         let bodyText = request.body.text;
-        try { bodyText = prettifyJSONC(request.body.text); } catch { /* silently fail */ }
+        try { bodyText = prettifyJson(request.body.text); } catch { /* silently fail */ }
 
         editorJsonContent = findAndReplaceOrAddNode(
           editorJsonContent,
@@ -616,7 +609,7 @@ export const pasteCurl = async (editor: Editor, request: ImportRequest, context?
           let detectedType = "text";
           try {
             JSON.parse(trimmed);
-            bodyText = prettifyJSONC(request.body.text);
+            bodyText = prettifyJson(request.body.text);
             detectedType = "json";
           } catch { /* not JSON */ }
 
@@ -805,7 +798,7 @@ export const CurlPaste = () =>
               if (fencedMatch) {
                 try {
                   const inner = fencedMatch[1];
-                  const prettified = prettifyJSONC(inner);
+                  const prettified = prettifyIfValidJson(inner);
                   const formatted = "```json\n" + prettified + "\n```";
                   const doc = renderMarkdownToDoc(formatted, view.state.schema);
                   const tr = view.state.tr.replaceSelectionWith(doc);

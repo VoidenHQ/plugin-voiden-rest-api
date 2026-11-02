@@ -3,19 +3,7 @@ import { mergeAttributes, Node, NodeViewProps } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import React from "react";
 import { Sparkles } from "lucide-react";
-import { stripJsonComments } from "../lib/utils";
-
-// Prettify JSON using native JSON methods
-// Handles JSONC by stripping comments first
-const prettifyJSON = (json: string) => {
-  try {
-    // Strip comments before parsing
-    const jsonWithoutComments = stripJsonComments(json);
-    return JSON.stringify(JSON.parse(jsonWithoutComments), null, 2);
-  } catch {
-    return json;
-  }
-};
+import { prettifyIfValidJson, prettifyJson } from "../lib/prettifyJson";
 
 // Factory function to create JsonNode with context components
 export const createJsonNode = (NodeViewWrapper: any, CodeEditor: any, RequestBlockHeader: any, openFile?: (relativePath: string) => Promise<void>) => {
@@ -81,7 +69,7 @@ export const createJsonNode = (NodeViewWrapper: any, CodeEditor: any, RequestBlo
       try {
         // Get current value from node attrs and prettify it
         const currentValue = props.node.attrs.body || '{}';
-        const prettified = prettifyJSON(currentValue);
+        const prettified = prettifyJson(currentValue);
         props.updateAttributes({ body: prettified });
       } catch (error) {
       }
@@ -126,11 +114,7 @@ export const createJsonNode = (NodeViewWrapper: any, CodeEditor: any, RequestBlo
         default: '{\n  \n}',
         parseHTML: (element) => {
           const content = element.textContent || "";
-          try {
-            return content ? JSON.stringify(JSON.parse(content), null, 2) : '{\n  \n}';
-          } catch {
-            return content || '{\n  \n}';
-          }
+          return content ? prettifyIfValidJson(content) : '{\n  \n}';
         },
       },
       importedFrom: {
