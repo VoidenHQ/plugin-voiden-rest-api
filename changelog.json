@@ -1,5 +1,16 @@
 [
   {
+    "version": "v1.4.17",
+    "date": "03/11/2026",
+    "title": "Fix: --data-urlencode cURL Imports",
+    "changes": {
+      "Fixed": [
+        "Pasting a cURL command with --data-urlencode now creates a URL Form block instead of a JSON body",
+        "Pasting a cURL command with -d key=value pairs and no Content-Type keeps the = between keys and values"
+      ]
+    }
+  },
+  {
     "version": "v1.4.16",
     "date": "02/11/2026",
     "title": "HTTP QUERY Method, Required Checkbox Support and Prettify Fixes",
