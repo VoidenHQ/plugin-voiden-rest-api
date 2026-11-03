@@ -266,7 +266,12 @@ const importCommand = (parseEntries: ParseEntry[], rawData?: string): ImportRequ
 
   if (dataParameters.length !== 0 && bodyAsGET) {
     parameters.push(...dataParameters);
-  } else if (dataParameters && mimeType === "application/x-www-form-urlencoded") {
+  } else if (
+    dataParameters.length !== 0 &&
+    (mimeType === "application/x-www-form-urlencoded" || (!mimeType && hasUrlEncodeFlag(pairsByName)))
+  ) {
+    // curl sends --data-urlencode as application/x-www-form-urlencoded by default
+    body.mimeType = "application/x-www-form-urlencoded";
     body.params = dataParameters.map((parameter) => {
       return {
         ...parameter,
@@ -275,7 +280,9 @@ const importCommand = (parseEntries: ParseEntry[], rawData?: string): ImportRequ
       };
     });
   } else if (dataParameters.length !== 0) {
-    body.text = dataParameters.map((parameter) => `${parameter.name}${parameter.value}`).join("&");
+    body.text = dataParameters
+      .map((parameter) => (parameter.name ? `${parameter.name}=${parameter.value ?? ""}` : parameter.value ?? ""))
+      .join("&");
     body.mimeType = mimeType || "";
   } else if (formDataParams.length) {
     body.params = formDataParams;
@@ -338,7 +345,7 @@ const pairsToDataParameters = (keyedPairs: PairsByName): Parameter[] => {
       case "data-urlencode":
         dataParameters = dataParameters.concat(
           pairs
-            .flatMap((pair) => pairToParameters(pair, true))
+            .map(urlEncodePairToParameter)
             .map((parameter) => {
               if (parameter.type === "file") {
                 return parameter;
@@ -357,6 +364,32 @@ const pairsToDataParameters = (keyedPairs: PairsByName): Parameter[] => {
   }
 
   return dataParameters;
+};
+
+const hasUrlEncodeFlag = (keyedPairs: PairsByName) => Boolean(keyedPairs["data-urlencode"]?.length);
+
+/**
+ * Parses a single --data-urlencode value. Unlike -d, curl never splits these on `&`,
+ * and only the first `=` separates the name from the content.
+ * Forms: `content`, `=content`, `name=content`, `@filename`, `name@filename`.
+ */
+const urlEncodePairToParameter = (pair: Pair): Parameter => {
+  if (typeof pair === "boolean") {
+    return { name: "", value: pair.toString() };
+  }
+
+  const eqIdx = pair.indexOf("=");
+  const atIdx = pair.indexOf("@");
+
+  if (atIdx !== -1 && (eqIdx === -1 || atIdx < eqIdx)) {
+    return { name: pair.slice(0, atIdx), fileName: pair.slice(atIdx + 1), type: "file" };
+  }
+
+  if (eqIdx === -1) {
+    return { name: "", value: pair };
+  }
+
+  return { name: pair.slice(0, eqIdx), value: pair.slice(eqIdx + 1) };
 };
 
 /**
