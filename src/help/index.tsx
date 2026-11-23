@@ -486,13 +486,17 @@ export const RequestOptionsHelp = () => (
       <h4 className="font-semibold mb-2 text-text">Available Options</h4>
       <ul className="list-disc list-inside space-y-1 text-sm text-comment">
         <li><code className="bg-accent/10 px-1 rounded text-text">follow_redirects</code> - Follow HTTP redirects automatically. Set to <code className="bg-accent/10 px-1 rounded text-text">false</code> to inspect 3xx redirect responses directly.</li>
+        <li><code className="bg-accent/10 px-1 rounded text-text">disable_tls_verification</code> - Set to <code className="bg-accent/10 px-1 rounded text-text">true</code> to accept self-signed or otherwise untrusted server certificates for this request only, or <code className="bg-accent/10 px-1 rounded text-text">false</code> to verify even when the global setting turns verification off. Any other value uses the global setting.</li>
+        <li><code className="bg-accent/10 px-1 rounded text-text">client_certificate</code> - Client certificate (mTLS) to present: <code className="bg-accent/10 px-1 rounded text-text">auto</code> (default, the first profile in <code className="bg-accent/10 px-1 rounded text-text">.voiden/certificates.yaml</code> whose hosts match), <code className="bg-accent/10 px-1 rounded text-text">none</code>, or a profile name.</li>
       </ul>
     </section>
 
     <section>
       <h4 className="font-semibold mb-2 text-text">Example</h4>
       <pre className="bg-accent/10 p-2 rounded text-xs overflow-x-auto text-text">
-{`follow_redirects: false`}
+{`follow_redirects: false
+disable_tls_verification: true
+client_certificate: payments-mtls`}
       </pre>
     </section>
   </div>

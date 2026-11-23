@@ -385,10 +385,14 @@ const voidenRestApiPlugin = (context: PluginContext) => {
       context.registerTableSuggestions('options-table', {
         0: [
           { label: 'follow_redirects', description: 'Follow HTTP redirects (true/false)' },
+          { label: 'disable_tls_verification', description: 'Skip TLS certificate verification for this request (true/false)' },
+          { label: 'client_certificate', description: 'Client certificate (mTLS): auto, none or a profile from .voiden/certificates.yaml' },
         ],
         1: [
           { label: 'true' },
           { label: 'false' },
+          { label: 'auto', description: 'client_certificate: pick the profile whose hosts match' },
+          { label: 'none', description: 'client_certificate: send no certificate' },
         ],
       });
 

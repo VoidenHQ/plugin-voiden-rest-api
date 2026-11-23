@@ -1,5 +1,20 @@
 [
   {
+    "version": "v1.4.18",
+    "date": "23/11/2026",
+    "title": "TLS Details and Client Certificate Options",
+    "changes": {
+      "Added": [
+        "The response's Security section shows the real TLS connection: protocol, cipher, server certificate subject, issuer and expiry, and whether it was trusted",
+        "The Security section shows the client certificate (mTLS) sent with the request, with its profile name",
+        "The Options block suggests disable_tls_verification and client_certificate, and the help page explains both"
+      ],
+      "Fixed": [
+        "The Security section no longer shows placeholder TLS protocol and cipher values"
+      ]
+    }
+  },
+  {
     "version": "v1.4.17",
     "date": "03/11/2026",
     "title": "Fix: --data-urlencode cURL Imports",

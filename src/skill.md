@@ -215,6 +215,8 @@ Row format: `[option-name, option-value, description]` — 3-element array. Supp
 | Option | Values | Description |
 |--------|--------|-------------|
 | `follow_redirects` | `true` / `false` | Whether to follow HTTP redirects (default `true`) |
+| `disable_tls_verification` | `true` / `false` | Overrides the global TLS verification setting for this request; `true` accepts untrusted server certificates. Other values fall back to the global setting |
+| `client_certificate` | `auto` / `none` / profile name | Client certificate (mTLS) from `.voiden/certificates.yaml`; `auto` (default) uses the first profile whose `hosts` match |
 
 ### url-table — URL-Encoded Form Data
 
