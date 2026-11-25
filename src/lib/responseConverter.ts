@@ -4,6 +4,8 @@
  * Converts HTTP response objects to Voiden document JSON with response nodes
  */
 
+import type { TlsDetails } from "../nodes/RequestHeadersNode";
+
 export interface HttpResponse {
   statusCode: number;
   statusMessage?: string;
@@ -18,15 +20,7 @@ export interface HttpResponse {
     url: string;
     headers: { key: string; value: string }[];
     httpVersion?: string;
-    tlsInfo?: {
-      protocol: string;
-      cipher: string;
-      isSecure: boolean;
-      certificate?: {
-        issuer: string;
-        expiry: string;
-      };
-    };
+    tlsInfo?: TlsDetails;
     proxy?: {
       name: string;
       host: string;

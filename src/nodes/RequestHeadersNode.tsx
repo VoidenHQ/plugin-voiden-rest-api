@@ -21,19 +21,95 @@ export interface RequestHeadersAttrs {
   url: string;
   method: string;
   httpVersion?: string;
-  tls?: {
-    // Structure for TLS details
-    protocol: string;
-    cipher: string;
-    certificate?: {
-      issuer: string;
-      expiry: string;
-    };
-    isSecure: boolean;
-  };
+  tls?: TlsDetails;
   requestBody?: string | null;
   requestBodyContentType?: string | null;
 }
+
+/**
+ * TLS details of the connection, from Voiden core (`requestMeta.tlsInfo`).
+ * Older cores send only `isSecure` plus placeholder protocol/cipher values;
+ * every other field is optional.
+ */
+export interface TlsDetails {
+  isSecure: boolean;
+  protocol?: string;
+  cipher?: string;
+  /** False when TLS verification is off and the server's certificate didn't verify. */
+  authorized?: boolean;
+  authorizationError?: string;
+  certificate?: {
+    subject?: string;
+    issuer?: string;
+    validFrom?: string;
+    expiry?: string;
+  };
+  /** The client certificate (mTLS) sent with this request. */
+  clientCertificate?: {
+    /** Profile name from .voiden/certificates.yaml. */
+    name?: string;
+    subject?: string;
+    issuer?: string;
+    expiry?: string;
+  };
+}
+
+const formatCertDate = (value?: string): string | undefined => {
+  if (!value) return undefined;
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  const text = d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return d.getTime() < Date.now() ? `${text} (expired)` : text;
+};
+
+/** The lines of the Request Summary / Security section, shared by the view and its copy buttons. */
+export const buildRequestSummaryLines = (
+  method: string,
+  url: string,
+  httpVersion: string | undefined,
+  tls: TlsDetails | undefined,
+): string[] => {
+  const lines: string[] = [];
+  lines.push(`Method: ${method}`);
+  lines.push(`URL: ${url}`);
+  if (httpVersion) lines.push(`HTTP Version: ${httpVersion}`);
+
+  const isSecure = tls?.isSecure === true;
+  lines.push(`Security: ${isSecure ? "Secure Connection (HTTPS)" : tls ? "Insecure Connection" : "HTTP Connection"}`);
+  if (!isSecure || !tls) return lines;
+
+  if (tls.protocol) lines.push(`TLS Protocol: ${tls.protocol}`);
+  if (tls.cipher) lines.push(`Cipher Suite: ${tls.cipher}`);
+
+  const server = tls.certificate;
+  if (server) {
+    if (server.subject) lines.push(`Server Certificate: ${server.subject}`);
+    if (server.issuer) lines.push(`Server Certificate Issuer: ${server.issuer}`);
+    const expiry = formatCertDate(server.expiry);
+    if (expiry) lines.push(`Server Certificate Expiry: ${expiry}`);
+  }
+  if (tls.authorized === true) {
+    lines.push("Server Certificate Trusted: Yes");
+  } else if (tls.authorized === false) {
+    lines.push(
+      `Server Certificate Trusted: No, not verified because TLS verification is off${tls.authorizationError ? ` (${tls.authorizationError})` : ""}`,
+    );
+  }
+
+  // Only cores that report the server certificate also report client certificates,
+  // so "None" is shown only when we know.
+  const client = tls.clientCertificate;
+  if (client) {
+    const label = client.name ?? client.subject ?? "Sent";
+    lines.push(`Client Certificate: ${label}${client.subject && client.subject !== label ? ` (${client.subject})` : ""}`);
+    if (client.issuer) lines.push(`Client Certificate Issuer: ${client.issuer}`);
+    const expiry = formatCertDate(client.expiry);
+    if (expiry) lines.push(`Client Certificate Expiry: ${expiry}`);
+  } else if (server) {
+    lines.push("Client Certificate: None");
+  }
+  return lines;
+};
 
 // --- HELPER FUNCTION FOR TLS/SUMMARY DISPLAY ---
 
@@ -54,9 +130,6 @@ const renderTLSSection = (
 ) => {
   if (!tls && !url) return null;
 
-  const isSecure = tls?.isSecure === true;
-  const statusText = isSecure ? "Secure Connection (HTTPS)" : tls ? "Insecure Connection" : "HTTP Connection";
-
   const isCollapsed = !openNodes.includes("request-headers-security");
 
   // Handle click - toggle this node open/closed
@@ -65,22 +138,7 @@ const renderTLSSection = (
   };
 
   // Build the summary text for CodeMirror
-  const summaryLines: string[] = [];
-  summaryLines.push(`Method: ${method}`);
-  summaryLines.push(`URL: ${url}`);
-  if (httpVersion) {
-    summaryLines.push(`HTTP Version: ${httpVersion}`);
-  }
-  summaryLines.push(`Security: ${statusText}`);
-
-  if (isSecure && tls) {
-    summaryLines.push(`TLS Protocol: ${tls.protocol}`);
-    summaryLines.push(`Cipher Suite: ${tls.cipher}`);
-    if (tls.certificate) {
-      summaryLines.push(`Certificate Issuer: ${tls.certificate.issuer}`);
-      summaryLines.push(`Certificate Expiry: ${tls.certificate.expiry}`);
-    }
-  }
+  const summaryLines = buildRequestSummaryLines(method, url, httpVersion, tls);
 
   const summaryText = summaryLines.join('\n');
 
@@ -209,23 +267,7 @@ export const createRequestHeadersNode = (NodeViewWrapper: any, CodeEditor: any, 
     if (!headers || headers.length === 0) {
       const handleCopySummaryEmpty = async () => {
         try {
-          const summaryLines: string[] = [];
-          summaryLines.push(`Method: ${method}`);
-          summaryLines.push(`URL: ${url}`);
-          if (httpVersion) {
-            summaryLines.push(`HTTP Version: ${httpVersion}`);
-          }
-          const isSecure = tls?.isSecure === true;
-          const statusText = isSecure ? "Secure Connection (HTTPS)" : tls ? "Insecure Connection" : "HTTP Connection";
-          summaryLines.push(`Security: ${statusText}`);
-          if (isSecure && tls) {
-            summaryLines.push(`TLS Protocol: ${tls.protocol}`);
-            summaryLines.push(`Cipher Suite: ${tls.cipher}`);
-            if (tls.certificate) {
-              summaryLines.push(`Certificate Issuer: ${tls.certificate.issuer}`);
-              summaryLines.push(`Certificate Expiry: ${tls.certificate.expiry}`);
-            }
-          }
+          const summaryLines = buildRequestSummaryLines(method, url, httpVersion, tls);
           const summaryText = summaryLines.join('\n');
           await navigator.clipboard.writeText(summaryText);
           setCopiedSummary(true);
@@ -277,23 +319,7 @@ export const createRequestHeadersNode = (NodeViewWrapper: any, CodeEditor: any, 
 
     const handleCopySummary = async () => {
       try {
-        const summaryLines: string[] = [];
-        summaryLines.push(`Method: ${method}`);
-        summaryLines.push(`URL: ${url}`);
-        if (httpVersion) {
-          summaryLines.push(`HTTP Version: ${httpVersion}`);
-        }
-        const isSecure = tls?.isSecure === true;
-        const statusText = isSecure ? "Secure Connection (HTTPS)" : tls ? "Insecure Connection" : "HTTP Connection";
-        summaryLines.push(`Security: ${statusText}`);
-        if (isSecure && tls) {
-          summaryLines.push(`TLS Protocol: ${tls.protocol}`);
-          summaryLines.push(`Cipher Suite: ${tls.cipher}`);
-          if (tls.certificate) {
-            summaryLines.push(`Certificate Issuer: ${tls.certificate.issuer}`);
-            summaryLines.push(`Certificate Expiry: ${tls.certificate.expiry}`);
-          }
-        }
+        const summaryLines = buildRequestSummaryLines(method, url, httpVersion, tls);
         const summaryText = summaryLines.join('\n');
         await navigator.clipboard.writeText(summaryText);
         setCopiedSummary(true);
